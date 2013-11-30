@@ -12,6 +12,7 @@ App.Router.map ->
     @route 'vertical_bar'
     @route 'time_series'
     @route 'scatter'
+    @route 'line'
     # @route 'bubble'
 
 App.IndexRoute = Ember.Route.extend

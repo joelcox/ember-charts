@@ -18,6 +18,7 @@ require 'build/app/controllers/vertical_bar'
 require 'build/app/controllers/pie'
 require 'build/app/controllers/scatter'
 require 'build/app/controllers/bubble'
+require 'build/app/controllers/line'
 
 # Views
 # None yet
