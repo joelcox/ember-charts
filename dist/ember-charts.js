@@ -3266,7 +3266,7 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 (function() {
 
 
-Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.TimeSeriesLabeler, Ember.Charts.FloatingTooltipMixin, Ember.Charts.HasTimeSeriesRule, Ember.Charts.AxesMixin, {
+Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
   formatTime: d3.time.format('%Y-%m-%d'),
   formatTimeLong: d3.time.format('%a %b %-d, %Y'),
@@ -3459,32 +3459,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   xGroupScale: Ember.computed(function() {
     return d3.scale.ordinal().domain(0).rangeRoundBands([0, this.get('paddedGroupWidth')], this.get('barPadding') / 2, this.get('barGroupPadding') / 2);
   }).property('xWithinGroupDomain', 'paddedGroupWidth', 'barPadding', 'barGroupPadding'),
-  showDetails: Ember.computed(function() {
-    var _this = this;
-    return function(data, i, element) {
-      var addValueLine, content, formatValue;
-      d3.select(element).classed('hovered', true);
-      content = "<span class=\"tip-label\">" + (_this.get('formatTime')(data.time)) + "</span>";
-      formatValue = _this.get('formatValue');
-      addValueLine = function(d) {
-        content += "<span class=\"name\">" + d.group + ": </span>";
-        return content += "<span class=\"value\">" + (formatValue(d.value)) + "</span><br/>";
-      };
-      if (Ember.isArray(data.values)) {
-        data.values.forEach(addValueLine);
-      } else {
-        addValueLine(data);
-      }
-      return _this.showTooltip(content, d3.event);
-    };
-  }),
-  hideDetails: Ember.computed(function() {
-    var _this = this;
-    return function(data, i, element) {
-      d3.select(element).classed('hovered', false);
-      return _this.hideTooltip();
-    };
-  }),
   zeroDisplacement: 1,
   line: Ember.computed(function() {
     var _this = this;
@@ -3612,6 +3586,16 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       };
     }));
   }).property('xBetweenSeriesDomain', 'xWithinGroupDomain', 'getSeriesColor', 'getSecondarySeriesColor'),
+  showLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
+    };
+  }),
+  hideLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
+    };
+  }),
   xAxis: Ember.computed(function() {
     var xAxis;
     xAxis = this.get('viewport').select('.x.axis');
@@ -3632,9 +3616,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   }).volatile(),
   renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale'],
   drawChart: function() {
-    this.updateRule();
     this.updateLineData();
-    this.updateLineMarkers();
     this.updateAxes();
     this.updateLineGraphic();
     if (this.get('hasLegend')) {

@@ -1,7 +1,5 @@
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
-  Ember.Charts.Legend, Ember.Charts.TimeSeriesLabeler,
-  Ember.Charts.FloatingTooltipMixin, Ember.Charts.HasTimeSeriesRule,
-  Ember.Charts.AxesMixin,
+  Ember.Charts.Legend, Ember.Charts.AxesMixin,
   classNames: ['chart-line']
 
   # ----------------------------------------------------------------------------
@@ -230,40 +228,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     'barPadding', 'barGroupPadding')
 
   # ----------------------------------------------------------------------------
-  # Tooltip Configuration
-  # ----------------------------------------------------------------------------
-
-  showDetails: Ember.computed ->
-    (data, i, element) =>
-
-      # Do hover detail style stuff here
-      d3.select(element).classed('hovered', yes)
-      # TODO(tony): handle legend hover
-
-      # Show tooltip
-      content = "<span class=\"tip-label\">#{@get('formatTime')(data.time)}</span>"
-
-      formatValue = @get 'formatValue'
-      addValueLine = (d) ->
-        content +="<span class=\"name\">#{d.group}: </span>"
-        content += "<span class=\"value\">#{formatValue(d.value)}</span><br/>"
-      if Ember.isArray(data.values)
-        # Display all bar details if hovering over axis label
-        data.values.forEach addValueLine
-      else
-        # Just hovering over single bar
-        addValueLine data
-      @showTooltip(content, d3.event)
-
-  hideDetails: Ember.computed ->
-    (data, i, element) =>
-      # Undo hover style stuff
-      d3.select(element).classed('hovered', no)
-
-      # Hide Tooltip
-      @hideTooltip()
-
-  # ----------------------------------------------------------------------------
   # Styles
   # ----------------------------------------------------------------------------
 
@@ -371,6 +335,18 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     'getSeriesColor', 'getSecondarySeriesColor')
 
   # ----------------------------------------------------------------------------
+  # Tooltip overwrites
+  # ----------------------------------------------------------------------------
+
+  showLegendDetails: Ember.computed ->
+    return ->
+      null
+
+  hideLegendDetails: Ember.computed ->
+    return ->
+      null
+
+  # ----------------------------------------------------------------------------
   # Selections
   # ----------------------------------------------------------------------------
 
@@ -401,9 +377,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale']
 
   drawChart: ->
-    @updateRule()
     @updateLineData()
-    @updateLineMarkers()
     @updateAxes()
     @updateLineGraphic()
     if @get('hasLegend')
