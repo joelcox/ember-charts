@@ -1,317 +1,323 @@
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
-  Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin,
-  Ember.Charts.AxesMixin,
+  Ember.Charts.Legend, Ember.Charts.AxesMixin,
   classNames: ['chart-line']
 
   # ----------------------------------------------------------------------------
-  # Line Chart Options
+  # Time Series Chart Options
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
+  formatTime: d3.time.format('%Y-%m-%d')
+  formatTimeLong: d3.time.format('%a %b %-d, %Y')
   formatValue: d3.format('.2s')
   formatValueLong: d3.format(',.r')
 
-  # Space between bars, as fraction of bar size
-  withinGroupPadding: 0
+  # Data without group will be merged into a group with this name
+  ungroupedSeriesName: 'Other'
 
-  # Radius of bubble representing a single data point
-  bubbleRadius: 5
+  # If stackBars is no then it stacks bars, otherwise it groups them
+  # horizontally. Stacking discards negative data.
+  stackBars: no
 
-  # Space between bar groups, as fraction of group size
-  betweenGroupPadding: Ember.computed ->
-    # Use padding to make sure bars have a maximum thickness.
-    #
-    # TODO(tony): Use exact padding + bar width calculation
-    # We have some set amount of between group padding we use depending
-    # on the number of bars there are in the chart. Really, what we would want
-    # to do is have the equation for bar width based on padding and use that
-    # to set the padding exactly.
-    scale = d3.scale.linear().domain([1,8]).range([1.25,0.25]).clamp(yes)
-    scale @get('numBars')
-  .property 'numBars'
+  # Use basis interpolation? Smooths lines but may prevent extrema from being
+  # displayed
+  interpolate: no
 
-  numBars: Ember.computed ->
-    @get('xBetweenGroupDomain.length') * @get('xWithinGroupDomain.length') or 0
-  .property 'xBetweenGroupDomain', 'xWithinGroupDomain'
+  # Force the Y axis to start at zero, instead of the smallest Y value provided
+  yAxisFromZero: no
 
-  # Space allocated for rotated labels on the bottom of the chart. If labels
-  # are rotated, they will be extended beyond labelHeight up to maxLabelHeight
-  maxLabelHeight: 50
+  # Space between bars, as fraction of total bar + padding space
+  barPadding: 0
+
+  # Space between bar groups, as fraction of total bar + padding space
+  barGroupPadding: 0.25
+
+  removeAllSeries: ->
+    @get('viewport').selectAll('.series').remove()
+
+  series: Ember.computed ->
+    @get('viewport').selectAll('.series').data(@get 'groupedLineData')
+  .volatile()
 
   # ----------------------------------------------------------------------------
   # Data
   # ----------------------------------------------------------------------------
 
-  # Aggregates objects provided in `data` in a dictionary, keyed by group names
-  groupedData: Ember.computed ->
-    data = @get 'data'
-    return [] if Ember.isEmpty data
-    Ember.Charts.Helpers.groupBy data, (d) =>
-      d.group ? @get('ungroupedSeriesName')
-  .property 'data.@each', 'ungroupedSeriesName'
+  groupedLineData: Ember.computed ->
+    lineData = @get 'lineData'
+    return [] if Ember.isEmpty lineData
 
-  groupNames: Ember.computed ->
-    for groupName, values of @get('groupedData')
-      groupName
-  .property 'groupedData'
+    groups = Ember.Charts.Helpers.groupBy lineData, (d) =>
+      d.group
+    grouping = for groupName, values of groups
+      group: groupName
+      values: values
 
-  # We know the data is grouped because it has more than one label. If there
-  # are no labels on the data then every data object will have
-  # 'ungroupedSeriesName' as its group name and the number of group
-  # labels will be 1. If we are passed ungrouped data we will display
-  # each data object in its own group.
-  isGrouped: Ember.computed ->
-    @get('groupNames.length') > 1
-  .property 'groupNames.length'
+  .property 'lineData.@each', 'ungroupedSeriesName'
 
+  groupedBarData: Ember.computed ->
+    return []
+  .property 'barData.@each', 'ungroupedSeriesName'
+
+  barGroups: Ember.computed ->
+    return []
+  .property 'barData.@each', 'ungroupedSeriesName'
+
+  stackedBarData: Ember.computed ->
+    return []
+  .property 'barData', 'ungroupedSeriesName'
+
+  # Combine all data for testing purposes
   finishedData: Ember.computed ->
-    if @get('isGrouped')
-      return [] if Ember.isEmpty @get('groupedData')
+    lineData: @get('groupedLineData')
+  .property(
+    'groupedLineData.@each.values'
 
-      # Keep a copy of the previous values so we can point to the
+  hasNoData: Ember.computed ->
+    !@get('hasLineData'))
+  .property 'hasLineData'
 
-      prevValues = null
-      for groupName, values of @get('groupedData')
-        current =
-          group: groupName
-          values: values
-          prevValues: prevValues
-
-        prevValues = values
-        current
-    else
-      return [] if Ember.isEmpty @get('data')
-      # If we have grouped data and do not have stackBars turned on, split the
-      # data up so it gets drawn in separate groups and labeled
-      for d in @get('data')
-        group: d.label
-        values: [d]
-  # TODO(tony): Need to have stacked bars as a dependency here and the
-  # calculation be outside of this
-  .property 'groupedData', 'isGrouped'
+  hasLineData: Ember.computed ->
+    !Ember.isEmpty(@get 'lineData')
+  .property 'lineData'
 
   # ----------------------------------------------------------------------------
   # Layout
   # ----------------------------------------------------------------------------
 
-  labelHeightOffset: Ember.computed ->
-    labelSize =
-      if @get('_shouldRotateLabels')
-        @get('maxLabelHeight')
-      else
-        @get('labelHeight')
-    labelSize + @get('labelPadding')
-  .property('_shouldRotateLabels', 'maxLabelHeight', 'labelHeight',
-    'labelPadding')
-
+  # Vertical spacing for legend, x axis labels and x axis title
   legendChartPadding: Ember.computed.alias 'labelHeightOffset'
 
-  # Chart Graphic Dimensions
   graphicLeft: Ember.computed.alias 'labelWidthOffset'
 
   graphicWidth: Ember.computed ->
-     @get('width') - @get('labelWidthOffset')
+    @get('width') - @get('labelWidthOffset')
   .property 'width', 'labelWidthOffset'
 
   graphicHeight: Ember.computed ->
     @get('height') - @get('legendHeight') - @get('legendChartPadding')
   .property('height', 'legendHeight', 'legendChartPadding')
 
-  # ----------------------------------------------------------------------------
-  # Ticks and Scales
-  # ----------------------------------------------------------------------------
+  individualBarLabels: Ember.computed.alias 'barGroups'
 
-  # Vertical position/length of each bar and its value
-  yDomain: Ember.computed ->
-    finishedData = @get 'finishedData'
-
-    minOfGroups = d3.min finishedData, (d) ->
-      _.min d.values.map((dd) -> dd.value)
-    maxOfGroups = d3.max finishedData, (d) ->
-      _.max d.values.map((dd) -> dd.value)
-
-    min = minOfGroups
-    max = maxOfGroups
-
-    # force one end of the range to include zero
-    if min > 0
-      return [ 0, max ]
-    if max < 0
-      return [ min, 0 ]
-    if min is max is 0
-      return [ 0, 1 ]
-    else
-      return [ min, max ]
-  .property 'finishedData'
-
-  yScale: Ember.computed ->
-    d3.scale.linear()
-      .domain(@get 'yDomain')
-      .range([ @get('graphicTop') + @get('graphicHeight'), @get('graphicTop') ])
-      .nice(@get 'numYTicks')
-  .property 'graphicTop', 'graphicHeight', 'yDomain', 'numYTicks'
-
-  individualBarLabels: Ember.computed ->
-    groups = _.values(@get 'groupedData').map (g) ->
-      _.pluck g, 'label'
-    _.uniq _.flatten(groups)
-  .property 'groupedData.@each'
-
-  # The range of labels assigned to each group
-  xBetweenGroupDomain: Ember.computed.alias 'groupNames'
+  # The time range over which all bar groups/bar stacks are drawn
+  xBetweenGroupDomain: Ember.computed.alias 'barDataExtent'
 
   # The range of labels assigned within each group
   xWithinGroupDomain: Ember.computed.alias 'individualBarLabels'
 
-  # The space in pixels allocated to each group
-  groupWidth: Ember.computed ->
-    @get('xBetweenGroupScale').rangeBand()
-  .property 'xBetweenGroupScale'
+  # ----------------------------------------------------------------------------
+  # Line Drawing Scales
+  # ----------------------------------------------------------------------------
 
-  # The space in pixels allocated to each bar
-  barWidth: Ember.computed ->
-    @get('xWithinGroupScale').rangeBand()
-  .property 'xWithinGroupScale'
+  lineSeriesNames: Ember.computed ->
+    data = @get 'groupedLineData'
+    return [] if Ember.isEmpty(data)
+    data.map (d) -> d.group
+  .property 'groupedLineData'
 
-  # The scale used to position bars within each group
-  # If we do not have grouped data, use the withinGroupPadding around group
-  # data since we will have constructed groups for each bar.
-  xWithinGroupScale: Ember.computed ->
+  lineDataExtent: Ember.computed ->
+    data = @get 'groupedLineData'
+    return [new Date(), new Date()] if Ember.isEmpty(data)
+    extents = data.getEach('values').map (series) ->
+      d3.extent series.map((d) -> d.value)
+    [d3.min(extents, (e) -> e[0]), d3.max(extents, (e) -> e[1])]
+  .property 'groupedLineData.@each.values'
+
+  # The set of all time series
+  xBetweenSeriesDomain: Ember.computed.alias 'lineSeriesNames'
+
+  # The range of all time series
+  xWithinSeriesDomain: Ember.computed.alias 'lineDataExtent'
+
+  # ----------------------------------------------------------------------------
+  # Ticks and Scales
+  # ----------------------------------------------------------------------------
+
+  # Override maxNumberOfLabels in the time series labeler mixin, setting it to
+  # the dynamically computed number of ticks going on the time series axis
+  maxNumberOfLabels: Ember.computed.alias 'numXTicks'
+
+  # Create a domain that spans the larger range of line data
+  xDomain: Ember.computed ->
+    lineData = @get 'groupedLineData'
+
+    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.label)
+    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.label)
+
+    [minOfLineData, maxOfLineData]
+  .property('groupedLineData')
+
+  yDomain: Ember.computed ->
+    lineData = @get 'groupedLineData'
+
+    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.value)
+    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.value)
+
+    [minOfLineData, maxOfLineData]
+  .property('groupedLineData')
+
+  yRange: Ember.computed ->
+    [ @get('graphicTop') + @get('graphicHeight'), @get('graphicTop') ]
+  .property 'graphicTop', 'graphicHeight'
+
+  yScale: Ember.computed ->
+    d3.scale.linear()
+      .domain(@get('yDomain'))
+      .range(@get('yRange'))
+      .nice(@get 'numYTicks')
+  .property 'yDomain', 'yRange', 'numYTicks'
+
+  xRange: Ember.computed ->
+    [ @get('graphicLeft'), @get('graphicLeft') + @get('graphicWidth') ]
+  .property 'graphicLeft', 'graphicWidth'
+
+  xTimeScale: Ember.computed ->
+    xDomain = @get 'xDomain'
+    d3.time.scale()
+      .domain(@get('xDomain'))
+      .range(@get('xRange'))
+  .property 'xDomain', 'xRange'
+
+  xGroupScale: Ember.computed ->
     d3.scale.ordinal()
-      .domain(@get 'xWithinGroupDomain')
-      .rangeRoundBands([ 0, @get('groupWidth') ],
-        @get('withinGroupPadding')/2, 0)
-  .property('isGrouped', 'xWithinGroupDomain', 'groupWidth',
-    'withinGroupPadding', 'betweenGroupPadding')
+      .domain(0)
+      .rangeRoundBands([ 0, @get('paddedGroupWidth')],
+        @get('barPadding')/2, @get('barGroupPadding')/2)
+  .property('xWithinGroupDomain', 'paddedGroupWidth',
+    'barPadding', 'barGroupPadding')
 
-  # The scale used to position each group and label across the horizontal axis
-  xBetweenGroupScale: Ember.computed ->
-    d3.scale.ordinal()
-      .domain(@get 'xBetweenGroupDomain')
-      .rangeRoundBands([ 0, @get('graphicWidth') ])
-  .property 'graphicWidth', 'xBetweenGroupDomain'
+  # ----------------------------------------------------------------------------
+  # Styles
+  # ----------------------------------------------------------------------------
+
+  # Number of pixels to shift graphics away from origin line
+  zeroDisplacement: 1
+
+  line: Ember.computed ->
+    d3.svg.line()
+      .x((d) => @get('xTimeScale') d.label)
+      .y((d) => @get('yScale') d.value)
+      .interpolate(if @get('interpolate') then 'basis' else 'linear')
+  .property 'xTimeScale', 'yScale', 'interpolate'
+
+  # Line styles. Implements Craig's design spec, which ensures that out of the
+  # first six lines, there are always two distinguishing styles between every
+  # pair of lines.
+  # 1st line: ~2px, base color, solid
+  # 2nd line: ~1px, 66% tinted, solid
+  # 3rd line: ~2px, base color, dotted
+  # 4th line: ~1px, 66% tinted, dotted
+  # 5th line: ~3px, 33% tinted, solid
+  # 6th line: ~3px, 33% tinted, dotted
+  getLineColor: Ember.computed ->
+    (d,i) =>
+      getSeriesColor = @get 'getSeriesColor'
+      switch i
+        when 0 then getSeriesColor(d, 0)
+        when 1 then getSeriesColor(d, 2)
+        when 2 then getSeriesColor(d, 0)
+        when 3 then getSeriesColor(d, 2)
+        when 4 then getSeriesColor(d, 0)
+        when 5 then getSeriesColor(d, 1)
+        else        getSeriesColor(d, i)
+
+  lineAttrs: Ember.computed ->
+    getSeriesColor = @get 'getSeriesColor'
+    line = @get 'line'
+    class: (d,i) -> "line series-#{i}"
+    d: (d) -> line d.values
+    fill: 'none'
+    stroke: @get 'getLineColor'
+    'stroke-width': (d, i) =>
+      switch i
+        when 0 then 2
+        when 1 then 1.5
+        when 2 then 2
+        when 3 then 1.5
+        when 4 then 2.5
+        when 5 then 2.5
+        else        2
+    'stroke-dasharray': (d, i) =>
+      switch i
+        when 2,3,5 then '2,2'
+        else ''
+  .property 'line', 'getSeriesColor'
 
   # ----------------------------------------------------------------------------
   # Color Configuration
   # ----------------------------------------------------------------------------
 
-  numColorSeries: Ember.computed.alias 'individualBarLabels.length'
+  numLines: Ember.computed.alias 'xBetweenSeriesDomain.length'
+  numBarsPerGroup: Ember.computed.alias 'xWithinGroupDomain.length'
+
+  numColorSeries: 6 # Ember.computed.alias 'numLines'
+  numSecondaryColorSeries: Ember.computed.alias 'numBarsPerGroup'
+
+  # Use primary colors for bars if there are no lines
+
+  secondaryMinimumTint: Ember.computed ->
+    if @get('numLines') is 0 then 0 else 0.4
+  .property 'numLines'
+
+  secondaryMaximumTint: Ember.computed ->
+    if @get('numLines') is 0 then 0.8 else 0.85
+  .property 'numLines'
 
   # ----------------------------------------------------------------------------
   # Legend Configuration
   # ----------------------------------------------------------------------------
 
   hasLegend: Ember.computed ->
-    @get('isGrouped') and @get('legendItems.length') > 1
-  .property 'isGrouped', 'legendItems.length'
+    @get('legendItems.length') > 1
+  .property 'legendItems.length'
 
   legendItems: Ember.computed ->
     getSeriesColor = @get 'getSeriesColor'
-    @get('individualBarLabels').map (d, i) ->
-      color = getSeriesColor(d, i)
+    lineAttrs = @get 'lineAttrs'
+    @get('xBetweenSeriesDomain').map (d, i) =>
+      # Line legend items
       label: d
-      fill: color
+      stroke: lineAttrs['stroke'](d, i)
+      width: lineAttrs['stroke-width'](d, i)
+      dotted: lineAttrs['stroke-dasharray'](d, i)
+      icon: -> 'line'
+      selector: ".series-#{i}"
+    .concat @get('xWithinGroupDomain').map (d, i) =>
+      # Bar legend items
+      color = @get('getSecondarySeriesColor')(d, i)
       stroke: color
+      fill: color
+      label: d
       icon: -> 'square'
       selector: ".grouping-#{i}"
-  .property 'individualBarLabels', 'getSeriesColor'
+  .property('xBetweenSeriesDomain', 'xWithinGroupDomain',
+    'getSeriesColor', 'getSecondarySeriesColor')
 
   # ----------------------------------------------------------------------------
-  # Tooltip Configuration
+  # Tooltip overwrites
   # ----------------------------------------------------------------------------
 
-  showDetails: Ember.computed ->
-    (data, i, element) =>
+  showLegendDetails: Ember.computed ->
+    return ->
+      null
 
-      # Specify whether we are on an individual bar or group
-      isGroup = Ember.isArray(data.values)
-
-      # Do hover detail style stuff here
-      element = if isGroup then element.parentNode.parentNode else element
-      d3.select(element).classed('hovered', yes)
-
-      # Show tooltip
-      content = "<span class=\"tip-label\">#{data.group}</span>"
-
-      formatValue = @get 'formatValue'
-      addValueLine = (d) ->
-        content +="<span class=\"name\">#{d.label}: </span>"
-        content += "<span class=\"value\">#{formatValue(d.value)}</span><br/>"
-
-      if isGroup
-        # Display all bar details if hovering over axis group label
-        data.values.forEach addValueLine
-      else
-        # Just hovering over single bar
-        addValueLine data
-      @showTooltip(content, d3.event)
-
-  hideDetails: Ember.computed ->
-    (data, i, element) =>
-
-      # if we exited the group label undo for the group
-      if Ember.isArray(data.values)
-        element = element.parentNode.parentNode
-      # Undo hover style stuff
-      d3.select(element).classed('hovered', no)
-
-      # Hide Tooltip
-      @hideTooltip()
-
-
-  # ----------------------------------------------------------------------------
-  # Styles
-  # ----------------------------------------------------------------------------
-
-  groupAttrs: Ember.computed ->
-    xBetweenGroupScale = @get 'xBetweenGroupScale'
-    transform: (d) =>
-      dx = @get('graphicLeft') + xBetweenGroupScale(d.group)
-      dy = @get('graphicTop')
-      "translate(#{dx}, #{dy})"
-  .property 'graphicLeft', 'graphicTop', 'xBetweenGroupScale'
-
-  groupedBarAttrs: Ember.computed ->
-    zeroDisplacement = 1
-    yScale = @get 'yScale'
-
-    class: (d,i) -> "grouping-#{i}"
-    'stroke-width': 0
-    r: (d) => @get('bubbleRadius')
-    cy: (d) ->
-      if d.value > 0
-        yScale(d.value)
-      else
-        yScale(d.value) + zeroDisplacement
-    cx: (d) -> 20
-  .property 'yScale', 'getSeriesColor', 'barWidth'
-
-  lineAttrs: Ember.computed ->
-    yScale = @get 'yScale'
-
-    x1: (d) -> 0
-    x2: (d) -> 0
-    y1: 10
-    y2: (d) -> yScale(d.value)
-    stroke: 'black'
-  .property 'yScale'
-
-  labelAttrs: Ember.computed ->
-    'stroke-width': 0
-    transform: (d) =>
-      dx = @get('barWidth')/2
-      dx += @get('xWithinGroupScale')(d.group)
-      dy = @get('graphicTop') + @get('graphicHeight') + @get('labelPadding')
-      "translate(#{dx}, #{dy})"
-  .property('barWidth', 'isGrouped', 'stackBars', 'groupWidth',
-    'xWithinGroupScale', 'graphicTop', 'graphicHeight', 'labelPadding')
+  hideLegendDetails: Ember.computed ->
+    return ->
+      null
 
   # ----------------------------------------------------------------------------
   # Selections
   # ----------------------------------------------------------------------------
 
-  groups: Ember.computed ->
-    @get('viewport').selectAll('.bars').data(@get 'finishedData')
+  xAxis: Ember.computed ->
+    xAxis = @get('viewport').select('.x.axis')
+    if xAxis.empty()
+      return @get('viewport')
+        .insert('g', ':first-child')
+        .attr('class', 'x axis')
+    else
+      return xAxis
   .volatile()
 
   yAxis: Ember.computed ->
@@ -325,116 +331,30 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   .volatile()
 
   # ----------------------------------------------------------------------------
-  # Label Layout
-  # ----------------------------------------------------------------------------
-
-  # Space available for labels that are horizontally displayed. This is either
-  # the unpadded group width or bar width depending on whether data is grouped
-  maxLabelWidth: Ember.computed ->
-    if @get('isGrouped') or @get('stackBars')
-      maxLabelWidth = @get 'groupWidth'
-    else
-      maxLabelWidth = @get 'barWidth'
-  .property 'isGrouped', 'stackBars', 'groupWidth', 'barWidth'
-
-  _shouldRotateLabels: no
-  setRotateLabels: ->
-    labels = @get('groups').select('.groupLabel text')
-    maxLabelWidth = @get 'maxLabelWidth'
-    rotateLabels = no
-    # Only rotate labels if doing so gives us more space
-    if @get('rotatedLabelLength') > maxLabelWidth
-      labels.each (d) ->
-        if @getBBox().width > maxLabelWidth
-          rotateLabels = yes
-    @set '_shouldRotateLabels', rotateLabels
-
-  # Calculate the number of degrees to rotate labels based on how widely labels
-  # will be spaced, but never rotate the labels less than 20 degrees
-  rotateLabelDegrees: Ember.computed ->
-    radians = Math.atan @get('labelHeight') / @get('maxLabelWidth')
-    degrees = radians * 180 / Math.PI
-    Math.max degrees, 20
-  .property 'labelHeight', 'maxLabelWidth'
-
-  rotatedLabelLength: Ember.computed ->
-    rotateLabelRadians = Math.PI / 180 * @get('rotateLabelDegrees')
-    Math.abs @get('maxLabelHeight') / Math.sin(rotateLabelRadians)
-  .property 'maxLabelHeight', 'rotateLabelDegrees'
-
-  # ----------------------------------------------------------------------------
   # Drawing Functions
   # ----------------------------------------------------------------------------
 
-  renderVars: ['xWithinGroupScale', 'xBetweenGroupScale', 'yScale',
-    'finishedData', 'getSeriesColor']
+  renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale']
 
   drawChart: ->
-    @updateData()
-    @updateLayout()
+    @updateLineData()
     @updateAxes()
-    @updateGraphic()
+    @updateLineGraphic()
     if @get('hasLegend')
       @drawLegend()
     else
       @clearLegend()
 
-  updateData: ->
-    groups = @get 'groups'
-    showDetails = @get 'showDetails'
-    hideDetails = @get 'hideDetails'
-
-    entering = groups.enter()
-      .append('g').attr('class', 'bars')
-    entering.append('g').attr('class', 'groupLabel')
-      .append('text')
-      .on("mouseover", (d,i) -> showDetails(d,i,this))
-      .on("mouseout", (d,i) -> hideDetails(d,i,this))
-    exiting = groups.exit().remove()
-
-    subdata = (d) ->
-      d.values
-
-    bubbles = groups.selectAll('circle').data(subdata)
-    bubbles.enter().append('circle')
-      .on("mouseover", (d,i) -> showDetails(d,i,this))
-      .on("mouseout", (d,i) -> hideDetails(d,i,this))
-    bubbles.exit().remove()
-
-    lines = groups.selectAll('line').data(subdata)
-    lines.enter().append('line')
-
-  updateLayout: ->
-    groups = @get('groups')
-    labels = groups.select('.groupLabel text')
-      .attr('transform', null) # remove any previous rotation attrs
-      .text((d) -> d.group)
-
-    # If there is enough space horizontally, center labels underneath each
-    # group. Otherwise, rotate each label and anchor it at the top of its
-    # first character.
-    @setRotateLabels()
-
-    if @get('_shouldRotateLabels')
-      rotateLabelDegrees = @get 'rotateLabelDegrees'
-      labelTrimmer = Ember.Charts.Helpers.LabelTrimmer.create
-        getLabelSize: (d) => @get 'rotatedLabelLength'
-        getLabelText: (d) -> d.group
-      labels.call(labelTrimmer.get 'trim').attr
-        'text-anchor': 'end'
-        transform: "rotate(#{-rotateLabelDegrees})"
-        dy: (d) -> @getBBox().height
-
-    else
-      maxLabelWidth = @get 'maxLabelWidth'
-      labelTrimmer = Ember.Charts.Helpers.LabelTrimmer.create
-        getLabelSize: (d) -> maxLabelWidth
-        getLabelText: (d) -> d.group ? ''
-      labels.call(labelTrimmer.get 'trim').attr
-        'text-anchor': 'middle'
-        dy: @get('labelPadding')
-
   updateAxes: ->
+
+    xAxis = d3.svg.axis()
+      .scale(@get 'xTimeScale')
+      .orient('bottom')
+      .ticks(@get 'getLabelledTicks')
+      .tickSubdivide(@get 'numberOfMinorTicks')
+      .tickFormat(@get 'formattedTime')
+      .tickSize(6, 3, 0)
+
     yAxis = d3.svg.axis()
       .scale(@get 'yScale')
       .orient('right')
@@ -443,13 +363,19 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       .tickFormat(@get 'formatValue')
 
     graphicTop = @get 'graphicTop'
+    graphicHeight = @get 'graphicHeight'
+    gXAxis = @get('xAxis')
+      .attr(transform: "translate(0,#{graphicTop+graphicHeight})")
+      .call(xAxis)
+
     graphicLeft = @get 'graphicLeft'
     gYAxis = @get('yAxis')
-      .attr(transform: "translate(#{graphicLeft},#{graphicTop})")
+      .attr('transform', "translate(#{graphicLeft},0)")
       .call(yAxis)
 
+    # Ensure ticks other than the zeroline are minor ticks
     gYAxis.selectAll('g')
-      .filter((d) -> d isnt 0)
+      .filter((d) -> d)
       .classed('major', no)
       .classed('minor', yes)
 
@@ -458,21 +384,24 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       .attr
         x: -@get('labelPadding')
 
-  updateGraphic: ->
-    groups = @get 'groups'
-    barAttrs = @get 'groupedBarAttrs'
-    lineAttrs = @get 'lineAttrs'
-    labelAttrs = @get 'labelAttrs'
+  updateLineData: ->
+    # Always remove the previous lines, this allows us to maintain the
+    # rendering order of bars behind lines
+    @removeAllSeries()
 
-    groups.attr(@get 'groupAttrs')
-    groups.selectAll('circle')
-      .style('fill', @get('getSeriesColor'))
-      .attr(barAttrs)
-    groups.selectAll('line')
-      .attr(lineAttrs)
+    series = @get 'series'
+    series.enter()
+      .append('g').attr('class', 'series')
+      .append('path').attr('class', 'line')
+    series.exit()
+      .remove()
 
-    labels = groups.select('g.groupLabel')
-      .attr(@get 'labelAttrs')
+  updateLineGraphic: ->
+    series = @get 'series'
+    graphicTop = @get 'graphicTop'
+    series.attr('transform', "translate(0, #{graphicTop})")
+    series.select('path.line')
+      .attr(@get 'lineAttrs')
 )
 
 Ember.Handlebars.helper('line-chart', Ember.Charts.LineComponent)

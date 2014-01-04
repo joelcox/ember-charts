@@ -13,21 +13,29 @@ App.EmberChartsLineController = App.SlideController.extend
   .property 'selectedData', 'rawDataHash'
 
   rawDataHash: Ember.computed ->
-    two_ranges: App.data.two_ranges
     three_ranges: App.data.three_ranges
-    five_ranges: App.data.five_ranges
-    sector_compare_return: App.data.sector_compare_return
-    '----': App.data.null
-    asset_values: App.data.asset_values
-    many_values: App.data.many_values
+    monthly_return_single_series: App.data.monthly_return_single_series
+    monthly_return_double_series: App.data.monthly_return_double_series
+    monthly_return_triple_series: App.data.monthly_return_triple_series
     monthly_return_single_period: App.data.monthly_return_single_period
-    high_net_worth_duration: App.data.high_net_worth_duration
+    monthly_return_double_period: App.data.monthly_return_double_period
+    monthly_return_negative_period: App.data.monthly_return_negative_period
+    daily_curr_value: App.data.daily_curr_value
+    daily_diff_value: App.data.daily_diff_value
+    daily_two_series: App.data.daily_two_series
+    daily_three_series: App.data.daily_three_series
+    daily_four_series: App.data.daily_four_series
+    daily_five_series: App.data.daily_five_series
+    daily_six_series: App.data.daily_six_series
     '----': App.data.null
+    value_p1d_p1y: App.data.value_p1d_p1y
+    value_p1w_p1y: App.data.value_p1w_p1y
+    value_p1m_p1y: App.data.value_p1m_p1y
+    value_p1m_p2y: App.data.value_p1m_p2y
+    value_p1m_p5y: App.data.value_p1m_p5y
+    zeroes_grouped: App.data.zeroes_grouped
+    zeroes_ungrouped: App.data.zeroes_ungrouped
+    same_value_grouped: App.data.same_value_grouped
+    same_value_ungrouped: App.data.same_value_ungrouped
     empty: App.data.empty
-    one_value: App.data.one_value
-    two_values: App.data.two_values
-    zero: App.data.zero
-    zeroes: App.data.zeroes
-    sum_to_zero: App.data.sum_to_zero
-    bad_range: App.data.bad_range
   selectedData: 'three_ranges'

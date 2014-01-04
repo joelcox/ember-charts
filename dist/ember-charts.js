@@ -3270,87 +3270,68 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 (function() {
 
 
-Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin, Ember.Charts.AxesMixin, {
+Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
+  formatTime: d3.time.format('%Y-%m-%d'),
+  formatTimeLong: d3.time.format('%a %b %-d, %Y'),
   formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
-  withinGroupPadding: 0,
-  bubbleRadius: 5,
-  betweenGroupPadding: Ember.computed(function() {
-    var scale;
-    scale = d3.scale.linear().domain([1, 8]).range([1.25, 0.25]).clamp(true);
-    return scale(this.get('numBars'));
-  }).property('numBars'),
-  numBars: Ember.computed(function() {
-    return this.get('xBetweenGroupDomain.length') * this.get('xWithinGroupDomain.length') || 0;
-  }).property('xBetweenGroupDomain', 'xWithinGroupDomain'),
-  maxLabelHeight: 50,
-  groupedData: Ember.computed(function() {
-    var data,
+  ungroupedSeriesName: 'Other',
+  stackBars: false,
+  interpolate: false,
+  yAxisFromZero: false,
+  barPadding: 0,
+  barGroupPadding: 0.25,
+  removeAllSeries: function() {
+    return this.get('viewport').selectAll('.series').remove();
+  },
+  series: Ember.computed(function() {
+    return this.get('viewport').selectAll('.series').data(this.get('groupedLineData'));
+  }).volatile(),
+  groupedLineData: Ember.computed(function() {
+    var groupName, grouping, groups, lineData, values,
       _this = this;
-    data = this.get('data');
-    if (Ember.isEmpty(data)) {
+    lineData = this.get('lineData');
+    if (Ember.isEmpty(lineData)) {
       return [];
     }
-    return Ember.Charts.Helpers.groupBy(data, function(d) {
-      var _ref;
-      return (_ref = d.group) != null ? _ref : _this.get('ungroupedSeriesName');
+    groups = Ember.Charts.Helpers.groupBy(lineData, function(d) {
+      return d.group;
     });
-  }).property('data.@each', 'ungroupedSeriesName'),
-  groupNames: Ember.computed(function() {
-    var groupName, values, _ref, _results;
-    _ref = this.get('groupedData');
-    _results = [];
-    for (groupName in _ref) {
-      values = _ref[groupName];
-      _results.push(groupName);
-    }
-    return _results;
-  }).property('groupedData'),
-  isGrouped: Ember.computed(function() {
-    return this.get('groupNames.length') > 1;
-  }).property('groupNames.length'),
-  finishedData: Ember.computed(function() {
-    var current, d, groupName, prevValues, values, _i, _len, _ref, _ref1, _results, _results1;
-    if (this.get('isGrouped')) {
-      if (Ember.isEmpty(this.get('groupedData'))) {
-        return [];
-      }
-      prevValues = null;
-      _ref = this.get('groupedData');
+    return grouping = (function() {
+      var _results;
       _results = [];
-      for (groupName in _ref) {
-        values = _ref[groupName];
-        current = {
+      for (groupName in groups) {
+        values = groups[groupName];
+        _results.push({
           group: groupName,
-          values: values,
-          prevValues: prevValues
-        };
-        prevValues = values;
-        _results.push(current);
-      }
-      return _results;
-    } else {
-      if (Ember.isEmpty(this.get('data'))) {
-        return [];
-      }
-      _ref1 = this.get('data');
-      _results1 = [];
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        d = _ref1[_i];
-        _results1.push({
-          group: d.label,
-          values: [d]
+          values: values
         });
       }
-      return _results1;
-    }
-  }).property('groupedData', 'isGrouped'),
-  labelHeightOffset: Ember.computed(function() {
-    var labelSize;
-    labelSize = this.get('_shouldRotateLabels') ? this.get('maxLabelHeight') : this.get('labelHeight');
-    return labelSize + this.get('labelPadding');
-  }).property('_shouldRotateLabels', 'maxLabelHeight', 'labelHeight', 'labelPadding'),
+      return _results;
+    })();
+  }).property('lineData.@each', 'ungroupedSeriesName'),
+  groupedBarData: Ember.computed(function() {
+    return [];
+  }).property('barData.@each', 'ungroupedSeriesName'),
+  barGroups: Ember.computed(function() {
+    return [];
+  }).property('barData.@each', 'ungroupedSeriesName'),
+  stackedBarData: Ember.computed(function() {
+    return [];
+  }).property('barData', 'ungroupedSeriesName'),
+  finishedData: Ember.computed(function() {
+    return {
+      lineData: this.get('groupedLineData')
+    };
+  }).property('groupedLineData.@each.values', {
+    hasNoData: Ember.computed(function() {
+      return !this.get('hasLineData');
+    })
+  }).property('hasLineData'),
+  hasLineData: Ember.computed(function() {
+    return !Ember.isEmpty(this.get('lineData'));
+  }).property('lineData'),
   legendChartPadding: Ember.computed.alias('labelHeightOffset'),
   graphicLeft: Ember.computed.alias('labelWidthOffset'),
   graphicWidth: Ember.computed(function() {
@@ -3359,179 +3340,233 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   graphicHeight: Ember.computed(function() {
     return this.get('height') - this.get('legendHeight') - this.get('legendChartPadding');
   }).property('height', 'legendHeight', 'legendChartPadding'),
-  yDomain: Ember.computed(function() {
-    var finishedData, max, maxOfGroups, min, minOfGroups;
-    finishedData = this.get('finishedData');
-    minOfGroups = d3.min(finishedData, function(d) {
-      return _.min(d.values.map(function(dd) {
-        return dd.value;
-      }));
-    });
-    maxOfGroups = d3.max(finishedData, function(d) {
-      return _.max(d.values.map(function(dd) {
-        return dd.value;
-      }));
-    });
-    min = minOfGroups;
-    max = maxOfGroups;
-    if (min > 0) {
-      return [0, max];
-    }
-    if (max < 0) {
-      return [min, 0];
-    }
-    if ((min === max && max === 0)) {
-      return [0, 1];
-    } else {
-      return [min, max];
-    }
-  }).property('finishedData'),
-  yScale: Ember.computed(function() {
-    return d3.scale.linear().domain(this.get('yDomain')).range([this.get('graphicTop') + this.get('graphicHeight'), this.get('graphicTop')]).nice(this.get('numYTicks'));
-  }).property('graphicTop', 'graphicHeight', 'yDomain', 'numYTicks'),
-  individualBarLabels: Ember.computed(function() {
-    var groups;
-    groups = _.values(this.get('groupedData')).map(function(g) {
-      return _.pluck(g, 'label');
-    });
-    return _.uniq(_.flatten(groups));
-  }).property('groupedData.@each'),
-  xBetweenGroupDomain: Ember.computed.alias('groupNames'),
+  individualBarLabels: Ember.computed.alias('barGroups'),
+  xBetweenGroupDomain: Ember.computed.alias('barDataExtent'),
   xWithinGroupDomain: Ember.computed.alias('individualBarLabels'),
-  groupWidth: Ember.computed(function() {
-    return this.get('xBetweenGroupScale').rangeBand();
-  }).property('xBetweenGroupScale'),
-  barWidth: Ember.computed(function() {
-    return this.get('xWithinGroupScale').rangeBand();
-  }).property('xWithinGroupScale'),
-  xWithinGroupScale: Ember.computed(function() {
-    return d3.scale.ordinal().domain(this.get('xWithinGroupDomain')).rangeRoundBands([0, this.get('groupWidth')], this.get('withinGroupPadding') / 2, 0);
-  }).property('isGrouped', 'xWithinGroupDomain', 'groupWidth', 'withinGroupPadding', 'betweenGroupPadding'),
-  xBetweenGroupScale: Ember.computed(function() {
-    return d3.scale.ordinal().domain(this.get('xBetweenGroupDomain')).rangeRoundBands([0, this.get('graphicWidth')]);
-  }).property('graphicWidth', 'xBetweenGroupDomain'),
-  numColorSeries: Ember.computed.alias('individualBarLabels.length'),
-  hasLegend: Ember.computed(function() {
-    return this.get('isGrouped') && this.get('legendItems.length') > 1;
-  }).property('isGrouped', 'legendItems.length'),
-  legendItems: Ember.computed(function() {
-    var getSeriesColor;
+  lineSeriesNames: Ember.computed(function() {
+    var data;
+    data = this.get('groupedLineData');
+    if (Ember.isEmpty(data)) {
+      return [];
+    }
+    return data.map(function(d) {
+      return d.group;
+    });
+  }).property('groupedLineData'),
+  lineDataExtent: Ember.computed(function() {
+    var data, extents;
+    data = this.get('groupedLineData');
+    if (Ember.isEmpty(data)) {
+      return [new Date(), new Date()];
+    }
+    extents = data.getEach('values').map(function(series) {
+      return d3.extent(series.map(function(d) {
+        return d.value;
+      }));
+    });
+    return [
+      d3.min(extents, function(e) {
+        return e[0];
+      }), d3.max(extents, function(e) {
+        return e[1];
+      })
+    ];
+  }).property('groupedLineData.@each.values'),
+  xBetweenSeriesDomain: Ember.computed.alias('lineSeriesNames'),
+  xWithinSeriesDomain: Ember.computed.alias('lineDataExtent'),
+  maxNumberOfLabels: Ember.computed.alias('numXTicks'),
+  xDomain: Ember.computed(function() {
+    var lineData, maxOfLineData, minOfLineData;
+    lineData = this.get('groupedLineData');
+    maxOfLineData = d3.max(lineData, function(d) {
+      return d3.max(d.values, function(dd) {
+        return dd.label;
+      });
+    });
+    minOfLineData = d3.min(lineData, function(d) {
+      return d3.min(d.values, function(dd) {
+        return dd.label;
+      });
+    });
+    return [minOfLineData, maxOfLineData];
+  }).property('groupedLineData'),
+  yDomain: Ember.computed(function() {
+    var lineData, maxOfLineData, minOfLineData;
+    lineData = this.get('groupedLineData');
+    maxOfLineData = d3.max(lineData, function(d) {
+      return d3.max(d.values, function(dd) {
+        return dd.value;
+      });
+    });
+    minOfLineData = d3.min(lineData, function(d) {
+      return d3.min(d.values, function(dd) {
+        return dd.value;
+      });
+    });
+    return [minOfLineData, maxOfLineData];
+  }).property('groupedLineData'),
+  yRange: Ember.computed(function() {
+    return [this.get('graphicTop') + this.get('graphicHeight'), this.get('graphicTop')];
+  }).property('graphicTop', 'graphicHeight'),
+  yScale: Ember.computed(function() {
+    return d3.scale.linear().domain(this.get('yDomain')).range(this.get('yRange')).nice(this.get('numYTicks'));
+  }).property('yDomain', 'yRange', 'numYTicks'),
+  xRange: Ember.computed(function() {
+    return [this.get('graphicLeft'), this.get('graphicLeft') + this.get('graphicWidth')];
+  }).property('graphicLeft', 'graphicWidth'),
+  xTimeScale: Ember.computed(function() {
+    var xDomain;
+    xDomain = this.get('xDomain');
+    return d3.time.scale().domain(this.get('xDomain')).range(this.get('xRange'));
+  }).property('xDomain', 'xRange'),
+  xGroupScale: Ember.computed(function() {
+    return d3.scale.ordinal().domain(0).rangeRoundBands([0, this.get('paddedGroupWidth')], this.get('barPadding') / 2, this.get('barGroupPadding') / 2);
+  }).property('xWithinGroupDomain', 'paddedGroupWidth', 'barPadding', 'barGroupPadding'),
+  zeroDisplacement: 1,
+  line: Ember.computed(function() {
+    var _this = this;
+    return d3.svg.line().x(function(d) {
+      return _this.get('xTimeScale')(d.label);
+    }).y(function(d) {
+      return _this.get('yScale')(d.value);
+    }).interpolate(this.get('interpolate') ? 'basis' : 'linear');
+  }).property('xTimeScale', 'yScale', 'interpolate'),
+  getLineColor: Ember.computed(function() {
+    var _this = this;
+    return function(d, i) {
+      var getSeriesColor;
+      getSeriesColor = _this.get('getSeriesColor');
+      switch (i) {
+        case 0:
+          return getSeriesColor(d, 0);
+        case 1:
+          return getSeriesColor(d, 2);
+        case 2:
+          return getSeriesColor(d, 0);
+        case 3:
+          return getSeriesColor(d, 2);
+        case 4:
+          return getSeriesColor(d, 0);
+        case 5:
+          return getSeriesColor(d, 1);
+        default:
+          return getSeriesColor(d, i);
+      }
+    };
+  }),
+  lineAttrs: Ember.computed(function() {
+    var getSeriesColor, line,
+      _this = this;
     getSeriesColor = this.get('getSeriesColor');
-    return this.get('individualBarLabels').map(function(d, i) {
-      var color;
-      color = getSeriesColor(d, i);
+    line = this.get('line');
+    return {
+      "class": function(d, i) {
+        return "line series-" + i;
+      },
+      d: function(d) {
+        return line(d.values);
+      },
+      fill: 'none',
+      stroke: this.get('getLineColor'),
+      'stroke-width': function(d, i) {
+        switch (i) {
+          case 0:
+            return 2;
+          case 1:
+            return 1.5;
+          case 2:
+            return 2;
+          case 3:
+            return 1.5;
+          case 4:
+            return 2.5;
+          case 5:
+            return 2.5;
+          default:
+            return 2;
+        }
+      },
+      'stroke-dasharray': function(d, i) {
+        switch (i) {
+          case 2:
+          case 3:
+          case 5:
+            return '2,2';
+          default:
+            return '';
+        }
+      }
+    };
+  }).property('line', 'getSeriesColor'),
+  numLines: Ember.computed.alias('xBetweenSeriesDomain.length'),
+  numBarsPerGroup: Ember.computed.alias('xWithinGroupDomain.length'),
+  numColorSeries: 6,
+  numSecondaryColorSeries: Ember.computed.alias('numBarsPerGroup'),
+  secondaryMinimumTint: Ember.computed(function() {
+    if (this.get('numLines') === 0) {
+      return 0;
+    } else {
+      return 0.4;
+    }
+  }).property('numLines'),
+  secondaryMaximumTint: Ember.computed(function() {
+    if (this.get('numLines') === 0) {
+      return 0.8;
+    } else {
+      return 0.85;
+    }
+  }).property('numLines'),
+  hasLegend: Ember.computed(function() {
+    return this.get('legendItems.length') > 1;
+  }).property('legendItems.length'),
+  legendItems: Ember.computed(function() {
+    var getSeriesColor, lineAttrs,
+      _this = this;
+    getSeriesColor = this.get('getSeriesColor');
+    lineAttrs = this.get('lineAttrs');
+    return this.get('xBetweenSeriesDomain').map(function(d, i) {
       return {
         label: d,
-        fill: color,
+        stroke: lineAttrs['stroke'](d, i),
+        width: lineAttrs['stroke-width'](d, i),
+        dotted: lineAttrs['stroke-dasharray'](d, i),
+        icon: function() {
+          return 'line';
+        },
+        selector: ".series-" + i
+      };
+    }).concat(this.get('xWithinGroupDomain').map(function(d, i) {
+      var color;
+      color = _this.get('getSecondarySeriesColor')(d, i);
+      return {
         stroke: color,
+        fill: color,
+        label: d,
         icon: function() {
           return 'square';
         },
         selector: ".grouping-" + i
       };
-    });
-  }).property('individualBarLabels', 'getSeriesColor'),
-  showDetails: Ember.computed(function() {
-    var _this = this;
-    return function(data, i, element) {
-      var addValueLine, content, formatValue, isGroup;
-      isGroup = Ember.isArray(data.values);
-      element = isGroup ? element.parentNode.parentNode : element;
-      d3.select(element).classed('hovered', true);
-      content = "<span class=\"tip-label\">" + data.group + "</span>";
-      formatValue = _this.get('formatValue');
-      addValueLine = function(d) {
-        content += "<span class=\"name\">" + d.label + ": </span>";
-        return content += "<span class=\"value\">" + (formatValue(d.value)) + "</span><br/>";
-      };
-      if (isGroup) {
-        data.values.forEach(addValueLine);
-      } else {
-        addValueLine(data);
-      }
-      return _this.showTooltip(content, d3.event);
+    }));
+  }).property('xBetweenSeriesDomain', 'xWithinGroupDomain', 'getSeriesColor', 'getSecondarySeriesColor'),
+  showLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
     };
   }),
-  hideDetails: Ember.computed(function() {
-    var _this = this;
-    return function(data, i, element) {
-      if (Ember.isArray(data.values)) {
-        element = element.parentNode.parentNode;
-      }
-      d3.select(element).classed('hovered', false);
-      return _this.hideTooltip();
+  hideLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
     };
   }),
-  groupAttrs: Ember.computed(function() {
-    var xBetweenGroupScale,
-      _this = this;
-    xBetweenGroupScale = this.get('xBetweenGroupScale');
-    return {
-      transform: function(d) {
-        var dx, dy;
-        dx = _this.get('graphicLeft') + xBetweenGroupScale(d.group);
-        dy = _this.get('graphicTop');
-        return "translate(" + dx + ", " + dy + ")";
-      }
-    };
-  }).property('graphicLeft', 'graphicTop', 'xBetweenGroupScale'),
-  groupedBarAttrs: Ember.computed(function() {
-    var yScale, zeroDisplacement,
-      _this = this;
-    zeroDisplacement = 1;
-    yScale = this.get('yScale');
-    return {
-      "class": function(d, i) {
-        return "grouping-" + i;
-      },
-      'stroke-width': 0,
-      r: function(d) {
-        return _this.get('bubbleRadius');
-      },
-      cy: function(d) {
-        if (d.value > 0) {
-          return yScale(d.value);
-        } else {
-          return yScale(d.value) + zeroDisplacement;
-        }
-      },
-      cx: function(d) {
-        return 20;
-      }
-    };
-  }).property('yScale', 'getSeriesColor', 'barWidth'),
-  lineAttrs: Ember.computed(function() {
-    var yScale;
-    yScale = this.get('yScale');
-    return {
-      x1: function(d) {
-        return 0;
-      },
-      x2: function(d) {
-        return 0;
-      },
-      y1: 10,
-      y2: function(d) {
-        return yScale(d.value);
-      },
-      stroke: 'black'
-    };
-  }).property('yScale'),
-  labelAttrs: Ember.computed(function() {
-    var _this = this;
-    return {
-      'stroke-width': 0,
-      transform: function(d) {
-        var dx, dy;
-        dx = _this.get('barWidth') / 2;
-        dx += _this.get('xWithinGroupScale')(d.group);
-        dy = _this.get('graphicTop') + _this.get('graphicHeight') + _this.get('labelPadding');
-        return "translate(" + dx + ", " + dy + ")";
-      }
-    };
-  }).property('barWidth', 'isGrouped', 'stackBars', 'groupWidth', 'xWithinGroupScale', 'graphicTop', 'graphicHeight', 'labelPadding'),
-  groups: Ember.computed(function() {
-    return this.get('viewport').selectAll('.bars').data(this.get('finishedData'));
+  xAxis: Ember.computed(function() {
+    var xAxis;
+    xAxis = this.get('viewport').select('.x.axis');
+    if (xAxis.empty()) {
+      return this.get('viewport').insert('g', ':first-child').attr('class', 'x axis');
+    } else {
+      return xAxis;
+    }
   }).volatile(),
   yAxis: Ember.computed(function() {
     var yAxis;
@@ -3542,144 +3577,48 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       return yAxis;
     }
   }).volatile(),
-  maxLabelWidth: Ember.computed(function() {
-    var maxLabelWidth;
-    if (this.get('isGrouped') || this.get('stackBars')) {
-      return maxLabelWidth = this.get('groupWidth');
-    } else {
-      return maxLabelWidth = this.get('barWidth');
-    }
-  }).property('isGrouped', 'stackBars', 'groupWidth', 'barWidth'),
-  _shouldRotateLabels: false,
-  setRotateLabels: function() {
-    var labels, maxLabelWidth, rotateLabels;
-    labels = this.get('groups').select('.groupLabel text');
-    maxLabelWidth = this.get('maxLabelWidth');
-    rotateLabels = false;
-    if (this.get('rotatedLabelLength') > maxLabelWidth) {
-      labels.each(function(d) {
-        if (this.getBBox().width > maxLabelWidth) {
-          return rotateLabels = true;
-        }
-      });
-    }
-    return this.set('_shouldRotateLabels', rotateLabels);
-  },
-  rotateLabelDegrees: Ember.computed(function() {
-    var degrees, radians;
-    radians = Math.atan(this.get('labelHeight') / this.get('maxLabelWidth'));
-    degrees = radians * 180 / Math.PI;
-    return Math.max(degrees, 20);
-  }).property('labelHeight', 'maxLabelWidth'),
-  rotatedLabelLength: Ember.computed(function() {
-    var rotateLabelRadians;
-    rotateLabelRadians = Math.PI / 180 * this.get('rotateLabelDegrees');
-    return Math.abs(this.get('maxLabelHeight') / Math.sin(rotateLabelRadians));
-  }).property('maxLabelHeight', 'rotateLabelDegrees'),
-  renderVars: ['xWithinGroupScale', 'xBetweenGroupScale', 'yScale', 'finishedData', 'getSeriesColor'],
+  renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale'],
   drawChart: function() {
-    this.updateData();
-    this.updateLayout();
+    this.updateLineData();
     this.updateAxes();
-    this.updateGraphic();
+    this.updateLineGraphic();
     if (this.get('hasLegend')) {
       return this.drawLegend();
     } else {
       return this.clearLegend();
     }
   },
-  updateData: function() {
-    var bubbles, entering, exiting, groups, hideDetails, lines, showDetails, subdata;
-    groups = this.get('groups');
-    showDetails = this.get('showDetails');
-    hideDetails = this.get('hideDetails');
-    entering = groups.enter().append('g').attr('class', 'bars');
-    entering.append('g').attr('class', 'groupLabel').append('text').on("mouseover", function(d, i) {
-      return showDetails(d, i, this);
-    }).on("mouseout", function(d, i) {
-      return hideDetails(d, i, this);
-    });
-    exiting = groups.exit().remove();
-    subdata = function(d) {
-      return d.values;
-    };
-    bubbles = groups.selectAll('circle').data(subdata);
-    bubbles.enter().append('circle').on("mouseover", function(d, i) {
-      return showDetails(d, i, this);
-    }).on("mouseout", function(d, i) {
-      return hideDetails(d, i, this);
-    });
-    bubbles.exit().remove();
-    lines = groups.selectAll('line').data(subdata);
-    return lines.enter().append('line');
-  },
-  updateLayout: function() {
-    var groups, labelTrimmer, labels, maxLabelWidth, rotateLabelDegrees,
-      _this = this;
-    groups = this.get('groups');
-    labels = groups.select('.groupLabel text').attr('transform', null).text(function(d) {
-      return d.group;
-    });
-    this.setRotateLabels();
-    if (this.get('_shouldRotateLabels')) {
-      rotateLabelDegrees = this.get('rotateLabelDegrees');
-      labelTrimmer = Ember.Charts.Helpers.LabelTrimmer.create({
-        getLabelSize: function(d) {
-          return _this.get('rotatedLabelLength');
-        },
-        getLabelText: function(d) {
-          return d.group;
-        }
-      });
-      return labels.call(labelTrimmer.get('trim')).attr({
-        'text-anchor': 'end',
-        transform: "rotate(" + (-rotateLabelDegrees) + ")",
-        dy: function(d) {
-          return this.getBBox().height;
-        }
-      });
-    } else {
-      maxLabelWidth = this.get('maxLabelWidth');
-      labelTrimmer = Ember.Charts.Helpers.LabelTrimmer.create({
-        getLabelSize: function(d) {
-          return maxLabelWidth;
-        },
-        getLabelText: function(d) {
-          var _ref;
-          return (_ref = d.group) != null ? _ref : '';
-        }
-      });
-      return labels.call(labelTrimmer.get('trim')).attr({
-        'text-anchor': 'middle',
-        dy: this.get('labelPadding')
-      });
-    }
-  },
   updateAxes: function() {
-    var gYAxis, graphicLeft, graphicTop, yAxis;
+    var gXAxis, gYAxis, graphicHeight, graphicLeft, graphicTop, xAxis, yAxis;
+    xAxis = d3.svg.axis().scale(this.get('xTimeScale')).orient('bottom').ticks(this.get('getLabelledTicks')).tickSubdivide(this.get('numberOfMinorTicks')).tickFormat(this.get('formattedTime')).tickSize(6, 3, 0);
     yAxis = d3.svg.axis().scale(this.get('yScale')).orient('right').ticks(this.get('numYTicks')).tickSize(this.get('graphicWidth')).tickFormat(this.get('formatValue'));
     graphicTop = this.get('graphicTop');
+    graphicHeight = this.get('graphicHeight');
+    gXAxis = this.get('xAxis').attr({
+      transform: "translate(0," + (graphicTop + graphicHeight) + ")"
+    }).call(xAxis);
     graphicLeft = this.get('graphicLeft');
-    gYAxis = this.get('yAxis').attr({
-      transform: "translate(" + graphicLeft + "," + graphicTop + ")"
-    }).call(yAxis);
+    gYAxis = this.get('yAxis').attr('transform', "translate(" + graphicLeft + ",0)").call(yAxis);
     gYAxis.selectAll('g').filter(function(d) {
-      return d !== 0;
+      return d;
     }).classed('major', false).classed('minor', true);
     return gYAxis.selectAll('text').style('text-anchor', 'end').attr({
       x: -this.get('labelPadding')
     });
   },
-  updateGraphic: function() {
-    var barAttrs, groups, labelAttrs, labels, lineAttrs;
-    groups = this.get('groups');
-    barAttrs = this.get('groupedBarAttrs');
-    lineAttrs = this.get('lineAttrs');
-    labelAttrs = this.get('labelAttrs');
-    groups.attr(this.get('groupAttrs'));
-    groups.selectAll('circle').style('fill', this.get('getSeriesColor')).attr(barAttrs);
-    groups.selectAll('line').attr(lineAttrs);
-    return labels = groups.select('g.groupLabel').attr(this.get('labelAttrs'));
+  updateLineData: function() {
+    var series;
+    this.removeAllSeries();
+    series = this.get('series');
+    series.enter().append('g').attr('class', 'series').append('path').attr('class', 'line');
+    return series.exit().remove();
+  },
+  updateLineGraphic: function() {
+    var graphicTop, series;
+    series = this.get('series');
+    graphicTop = this.get('graphicTop');
+    series.attr('transform', "translate(0, " + graphicTop + ")");
+    return series.select('path.line').attr(this.get('lineAttrs'));
   }
 });
 
