@@ -48,8 +48,8 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     return [] if Ember.isEmpty lineData
 
     groups = Ember.Charts.Helpers.groupBy lineData, (d) =>
-      d.group
-    grouping = for groupName, values of groups
+      d.label
+    for groupName, values of groups
       group: groupName
       values: values
 
@@ -142,8 +142,8 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   xDomain: Ember.computed ->
     lineData = @get 'groupedLineData'
 
-    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.label)
-    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.label)
+    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.group)
+    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.group)
 
     [minOfLineData, maxOfLineData]
   .property('groupedLineData')
@@ -196,7 +196,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   line: Ember.computed ->
     d3.svg.line()
-      .x((d) => @get('xTimeScale') d.label)
+      .x((d) => @get('xTimeScale') d.group)
       .y((d) => @get('yScale') d.value)
       .interpolate(if @get('interpolate') then 'basis' else 'linear')
   .property 'xTimeScale', 'yScale', 'interpolate'

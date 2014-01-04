@@ -3289,27 +3289,24 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     return this.get('viewport').selectAll('.series').data(this.get('groupedLineData'));
   }).volatile(),
   groupedLineData: Ember.computed(function() {
-    var groupName, grouping, groups, lineData, values,
+    var groupName, groups, lineData, values, _results,
       _this = this;
     lineData = this.get('lineData');
     if (Ember.isEmpty(lineData)) {
       return [];
     }
     groups = Ember.Charts.Helpers.groupBy(lineData, function(d) {
-      return d.group;
+      return d.label;
     });
-    return grouping = (function() {
-      var _results;
-      _results = [];
-      for (groupName in groups) {
-        values = groups[groupName];
-        _results.push({
-          group: groupName,
-          values: values
-        });
-      }
-      return _results;
-    })();
+    _results = [];
+    for (groupName in groups) {
+      values = groups[groupName];
+      _results.push({
+        group: groupName,
+        values: values
+      });
+    }
+    return _results;
   }).property('lineData.@each', 'ungroupedSeriesName'),
   groupedBarData: Ember.computed(function() {
     return [];
@@ -3380,12 +3377,12 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     lineData = this.get('groupedLineData');
     maxOfLineData = d3.max(lineData, function(d) {
       return d3.max(d.values, function(dd) {
-        return dd.label;
+        return dd.group;
       });
     });
     minOfLineData = d3.min(lineData, function(d) {
       return d3.min(d.values, function(dd) {
-        return dd.label;
+        return dd.group;
       });
     });
     return [minOfLineData, maxOfLineData];
@@ -3426,7 +3423,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   line: Ember.computed(function() {
     var _this = this;
     return d3.svg.line().x(function(d) {
-      return _this.get('xTimeScale')(d.label);
+      return _this.get('xTimeScale')(d.group);
     }).y(function(d) {
       return _this.get('yScale')(d.value);
     }).interpolate(this.get('interpolate') ? 'basis' : 'linear');
