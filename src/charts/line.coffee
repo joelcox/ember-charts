@@ -59,78 +59,30 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   .property 'lineData.@each', 'ungroupedSeriesName'
 
   groupedBarData: Ember.computed ->
-    barData = @get 'barData'
-    return [] if Ember.isEmpty barData
-
-    barTimes = Ember.Charts.Helpers.groupBy barData, (d) -> +d.time
-    barGroupsByTime = for timePoint, groups of barTimes
-      # TODO: this doesn't need a groupBy since each key should be unique
-      grps = Ember.Charts.Helpers.groupBy groups, (d) =>
-        d.label ? @get('ungroupedSeriesName')
-      for g,v of grps
-        group: g
-        time: v[0].time
-        value: v[0].value
-        label: v[0].label
-
+    return []
   .property 'barData.@each', 'ungroupedSeriesName'
 
   barGroups: Ember.computed ->
-    barData = @get 'barData'
-    return [] if Ember.isEmpty barData
-    barGroups = Ember.Charts.Helpers.groupBy barData, (d) =>
-        d.label ? @get('ungroupedSeriesName')
-    for groupName, values of barGroups
-      groupName
+    return []
   .property 'barData.@each', 'ungroupedSeriesName'
 
   stackedBarData: Ember.computed ->
-    barData = @get 'barData'
-    return [] if Ember.isEmpty barData
-
-    barTimes = Ember.Charts.Helpers.groupBy barData, (d) -> +d.time
-    barGroupsByTime = for timePoint, groups of barTimes
-      # TODO: this doesn't need a groupBy since each key should be unique
-      # TODO: this also needs to deal with the case where some time points are
-      # missing groups
-      Ember.Charts.Helpers.groupBy groups, (d) =>
-        d.label ? @get('ungroupedSeriesName')
-
-    for g in barGroupsByTime
-      y0 = 0
-      stackedValues = for groupName, d of g
-        time = d?[0]?.time
-        value = d?[0]?.value
-        group: groupName
-        x: time
-        y0: y0
-        y1: y0 += Math.max(value, 0)
-      stackedValues: stackedValues
-      totalValue: y0
-
+    return []
   .property 'barData', 'ungroupedSeriesName'
 
   # Combine all data for testing purposes
   finishedData: Ember.computed ->
     lineData: @get('groupedLineData')
-    groupedBarData: @get('groupedBarData')
-    stackedBarData: @get('stackedBarData')
   .property(
-    'groupedLineData.@each.values',
-    'groupedBarData.@each',
-    'stackedBarData.@each')
+    'groupedLineData.@each.values'
 
   hasNoData: Ember.computed ->
-    !(@get('hasBarData') or @get('hasLineData'))
-  .property 'hasBarData', 'hasLineData'
+    !@get('hasLineData'))
+  .property 'hasLineData'
 
   hasLineData: Ember.computed ->
     !Ember.isEmpty(@get 'lineData')
   .property 'lineData'
-
-  hasBarData: Ember.computed ->
-    !Ember.isEmpty(@get 'barData')
-  .property 'barData'
 
   # ----------------------------------------------------------------------------
   # Layout
@@ -149,58 +101,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     @get('height') - @get('legendHeight') - @get('legendChartPadding')
   .property('height', 'legendHeight', 'legendChartPadding')
 
-  # ----------------------------------------------------------------------------
-  # Grouped/Stacked Bar Scales
-  # ----------------------------------------------------------------------------
-
-  # Unit of time between bar samples
-  timeDelta: Ember.computed ->
-    groupedBarData = @get 'groupedBarData'
-    if Ember.isEmpty(groupedBarData) or groupedBarData.get('length') < 2
-      return 'month'
-
-    startTime = groupedBarData[0][0].time
-    endTime = groupedBarData[1][0].time
-    diffTimeDays = (endTime - startTime) / (24*60*60*1000)
-
-    # Some fuzzy bar interval computation, I just picked 2 day buffer
-    if diffTimeDays > 351
-      'year'
-    else if diffTimeDays > 33
-      'quarter'
-    else if diffTimeDays > 9
-      'month'
-    else if diffTimeDays > 3
-      'week'
-    else
-      'day'
-  .property 'groupedBarData'
-
-  barDataExtent: Ember.computed ->
-    timeDelta = @get 'timeDelta'
-    groupedBarData = @get 'groupedBarData'
-    return [new Date(), new Date()] if Ember.isEmpty(groupedBarData)
-
-    startTimeGroup = groupedBarData[0]
-    startTime = startTimeGroup[0].time
-    endTimeGroup = groupedBarData[groupedBarData.length - 1]
-    endTime = endTimeGroup[0].time
-
-    # pad extent by half a group interval at the beginning at end
-    # in order to make room for bars
-    paddedStart =
-      if timeDelta is 'quarter'
-        +startTime/2 + d3.time['month'].offset(startTime, -3)/2
-      else
-        +startTime/2 + d3.time[timeDelta].offset(startTime, -1)/2
-    paddedEnd =
-      if timeDelta is 'quarter'
-        +endTime/2 + d3.time['month'].offset(endTime, 3)/2
-      else
-        +endTime/2 + d3.time[timeDelta].offset(endTime, 1)/2
-    [ new Date(paddedStart), new Date(paddedEnd) ]
-  .property 'timeDelta', 'groupedBarData.@each'
-
   individualBarLabels: Ember.computed.alias 'barGroups'
 
   # The time range over which all bar groups/bar stacks are drawn
@@ -208,35 +108,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   # The range of labels assigned within each group
   xWithinGroupDomain: Ember.computed.alias 'individualBarLabels'
-
-  # The space (in pixels) allocated to each bar, including padding
-  barWidth: Ember.computed ->
-    @get('xGroupScale').rangeBand()
-  .property 'xGroupScale'
-
-  # The space (in pixels) allocated to each stack, including padding
-  # This is separate from paddedGroupWidth because padding is calculated
-  # differently
-  stackWidth: Ember.computed ->
-    @get('paddedStackWidth') * (1 - @get('barGroupPadding'))
-  .property 'paddedStackWidth', 'barGroupPadding'
-
-  paddedStackWidth: Ember.computed ->
-    [start,end] = @get('xGroupScale').rangeExtent()
-    end - start
-  .property 'xGroupScale'
-
-  paddedGroupWidth: Ember.computed ->
-    timeDelta = @get 'timeDelta'
-    scale = @get 'xTimeScale'
-    t1 = @get('xBetweenGroupDomain')[0]
-    t2 =
-      if timeDelta is 'quarter'
-        d3.time['month'].offset(t1, 3)
-      else
-        d3.time[timeDelta].offset(t1, 1)
-    scale(t2) - scale(t1)
-  .property 'timeDelta', 'xTimeScale', 'xBetweenGroupDomain'
 
   # ----------------------------------------------------------------------------
   # Line Drawing Scales
@@ -352,7 +223,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   xGroupScale: Ember.computed ->
     d3.scale.ordinal()
-      .domain(@get 'xWithinGroupDomain')
+      .domain(0)
       .rangeRoundBands([ 0, @get('paddedGroupWidth')],
         @get('barPadding')/2, @get('barGroupPadding')/2)
   .property('xWithinGroupDomain', 'paddedGroupWidth',
@@ -432,6 +303,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     line = @get 'line'
     class: (d,i) -> "line series-#{i}"
     d: (d) -> line d.values
+    fill: 'none'
     stroke: @get 'getLineColor'
     'stroke-width': (d, i) =>
       switch i

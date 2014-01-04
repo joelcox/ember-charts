@@ -13,6 +13,7 @@ App.EmberChartsLineController = App.SlideController.extend
   .property 'selectedData', 'rawDataHash'
 
   rawDataHash: Ember.computed ->
+    three_ranges: App.data.three_ranges
     monthly_return_single_series: App.data.monthly_return_single_series
     monthly_return_double_series: App.data.monthly_return_double_series
     monthly_return_triple_series: App.data.monthly_return_triple_series
@@ -37,4 +38,4 @@ App.EmberChartsLineController = App.SlideController.extend
     same_value_grouped: App.data.same_value_grouped
     same_value_ungrouped: App.data.same_value_ungrouped
     empty: App.data.empty
-  selectedData: 'daily_three_series'
+  selectedData: 'three_ranges'
