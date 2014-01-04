@@ -45,12 +45,11 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   groupedLineData: Ember.computed ->
     lineData = @get 'lineData'
-    console.log(lineData)
     return [] if Ember.isEmpty lineData
 
     groups = Ember.Charts.Helpers.groupBy lineData, (d) =>
-      d.label ? @get('ungroupedSeriesName')
-    for groupName, values of groups
+      d.group
+    grouping = for groupName, values of groups
       group: groupName
       values: values
 
@@ -121,7 +120,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     data = @get 'groupedLineData'
     return [new Date(), new Date()] if Ember.isEmpty(data)
     extents = data.getEach('values').map (series) ->
-      d3.extent series.map((d) -> d.time)
+      d3.extent series.map((d) -> d.value)
     [d3.min(extents, (e) -> e[0]), d3.max(extents, (e) -> e[1])]
   .property 'groupedLineData.@each.values'
 
@@ -139,63 +138,24 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # the dynamically computed number of ticks going on the time series axis
   maxNumberOfLabels: Ember.computed.alias 'numXTicks'
 
-  # Create a domain that spans the larger range of bar or line data
+  # Create a domain that spans the larger range of line data
   xDomain: Ember.computed ->
-    return @get('xWithinSeriesDomain') unless @get('hasBarData')
-    return @get('xBetweenGroupDomain') unless @get('hasLineData')
-    [minOfGroups, maxOfGroups] = @get 'xBetweenGroupDomain'
-    [minOfSeries, maxOfSeries] = @get 'xWithinSeriesDomain'
-    [ Math.min(minOfGroups, minOfSeries),
-      Math.max(maxOfGroups, maxOfSeries) ]
-  .property('xBetweenGroupDomain', 'xWithinSeriesDomain',
-    'hasBarData', 'hasLineData')
+    lineData = @get 'groupedLineData'
 
-  # Largest and smallest values in line and bar data
-  # Use raw bar data instead of doubly grouped hashes in groupedBarData
+    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.label)
+    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.label)
+
+    [minOfLineData, maxOfLineData]
+  .property('groupedLineData')
+
   yDomain: Ember.computed ->
     lineData = @get 'groupedLineData'
-    stackData = @get 'stackedBarData'
-    groupData = @get 'groupedBarData'
 
-    maxOfSeries = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.value)
-    minOfSeries = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.value)
-    minOfStacks = d3.min stackData, (d) -> d.totalValue
-    maxOfStacks = d3.max stackData, (d) -> d.totalValue
-    maxOfGroups = d3.max groupData, (d) -> d3.max(d, (dd) -> dd.value)
-    minOfGroups = d3.min groupData, (d) -> d3.min(d, (dd) -> dd.value)
+    maxOfLineData = d3.max lineData, (d) -> d3.max(d.values, (dd) -> dd.value)
+    minOfLineData = d3.min lineData, (d) -> d3.min(d.values, (dd) -> dd.value)
 
-    hasBarData = @get 'hasBarData'
-    hasLineData = @get 'hasLineData'
-    stackBars = @get 'stackBars'
-
-    # Find the extent of whatever data is drawn on the graph,
-    # e.g. max of only line data, or max of line and stacked-bar data
-    if !hasBarData
-      min = minOfSeries
-      max = maxOfSeries
-    else if !hasLineData
-      min = if stackBars then minOfStacks else minOfGroups
-      max = if stackBars then maxOfStacks else maxOfGroups
-    else if stackBars
-      min = Math.min(minOfSeries, minOfStacks)
-      max = Math.max(maxOfSeries, maxOfStacks)
-    else
-      min = Math.min(minOfGroups, minOfSeries)
-      max = Math.max(maxOfGroups, maxOfSeries)
-
-    # Ensure the extent contains zero if that is desired. If all values in
-    # the y-domain are equal, assign it a range so data can be displayed
-    if stackBars or @get('yAxisFromZero') or min is max
-      if max < 0
-        return [ min, 0 ]
-      if min > 0
-        return [ 0, max ]
-      if min is max is 0
-        return [ -1, 1 ]
-    return [ min, max ]
-
-  .property('groupedLineData', 'stackedBarData', 'groupedBarData',
-    'hasBarData', 'hasLineData', 'stackBars', 'yAxisFromZero')
+    [minOfLineData, maxOfLineData]
+  .property('groupedLineData')
 
   yRange: Ember.computed ->
     [ @get('graphicTop') + @get('graphicHeight'), @get('graphicTop') ]
@@ -236,7 +196,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   line: Ember.computed ->
     d3.svg.line()
-      .x((d) => @get('xTimeScale') d.time)
+      .x((d) => @get('xTimeScale') d.label)
       .y((d) => @get('yScale') d.value)
       .interpolate(if @get('interpolate') then 'basis' else 'linear')
   .property 'xTimeScale', 'yScale', 'interpolate'

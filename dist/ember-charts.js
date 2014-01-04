@@ -3285,26 +3285,27 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     return this.get('viewport').selectAll('.series').data(this.get('groupedLineData'));
   }).volatile(),
   groupedLineData: Ember.computed(function() {
-    var groupName, groups, lineData, values, _results,
+    var groupName, grouping, groups, lineData, values,
       _this = this;
     lineData = this.get('lineData');
-    console.log(lineData);
     if (Ember.isEmpty(lineData)) {
       return [];
     }
     groups = Ember.Charts.Helpers.groupBy(lineData, function(d) {
-      var _ref;
-      return (_ref = d.label) != null ? _ref : _this.get('ungroupedSeriesName');
+      return d.group;
     });
-    _results = [];
-    for (groupName in groups) {
-      values = groups[groupName];
-      _results.push({
-        group: groupName,
-        values: values
-      });
-    }
-    return _results;
+    return grouping = (function() {
+      var _results;
+      _results = [];
+      for (groupName in groups) {
+        values = groups[groupName];
+        _results.push({
+          group: groupName,
+          values: values
+        });
+      }
+      return _results;
+    })();
   }).property('lineData.@each', 'ungroupedSeriesName'),
   groupedBarData: Ember.computed(function() {
     return [];
@@ -3356,7 +3357,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     }
     extents = data.getEach('values').map(function(series) {
       return d3.extent(series.map(function(d) {
-        return d.time;
+        return d.value;
       }));
     });
     return [
@@ -3371,77 +3372,35 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   xWithinSeriesDomain: Ember.computed.alias('lineDataExtent'),
   maxNumberOfLabels: Ember.computed.alias('numXTicks'),
   xDomain: Ember.computed(function() {
-    var maxOfGroups, maxOfSeries, minOfGroups, minOfSeries, _ref, _ref1;
-    if (!this.get('hasBarData')) {
-      return this.get('xWithinSeriesDomain');
-    }
-    if (!this.get('hasLineData')) {
-      return this.get('xBetweenGroupDomain');
-    }
-    _ref = this.get('xBetweenGroupDomain'), minOfGroups = _ref[0], maxOfGroups = _ref[1];
-    _ref1 = this.get('xWithinSeriesDomain'), minOfSeries = _ref1[0], maxOfSeries = _ref1[1];
-    return [Math.min(minOfGroups, minOfSeries), Math.max(maxOfGroups, maxOfSeries)];
-  }).property('xBetweenGroupDomain', 'xWithinSeriesDomain', 'hasBarData', 'hasLineData'),
-  yDomain: Ember.computed(function() {
-    var groupData, hasBarData, hasLineData, lineData, max, maxOfGroups, maxOfSeries, maxOfStacks, min, minOfGroups, minOfSeries, minOfStacks, stackBars, stackData;
+    var lineData, maxOfLineData, minOfLineData;
     lineData = this.get('groupedLineData');
-    stackData = this.get('stackedBarData');
-    groupData = this.get('groupedBarData');
-    maxOfSeries = d3.max(lineData, function(d) {
+    maxOfLineData = d3.max(lineData, function(d) {
+      return d3.max(d.values, function(dd) {
+        return dd.label;
+      });
+    });
+    minOfLineData = d3.min(lineData, function(d) {
+      return d3.min(d.values, function(dd) {
+        return dd.label;
+      });
+    });
+    return [minOfLineData, maxOfLineData];
+  }).property('groupedLineData'),
+  yDomain: Ember.computed(function() {
+    var lineData, maxOfLineData, minOfLineData;
+    lineData = this.get('groupedLineData');
+    maxOfLineData = d3.max(lineData, function(d) {
       return d3.max(d.values, function(dd) {
         return dd.value;
       });
     });
-    minOfSeries = d3.min(lineData, function(d) {
+    minOfLineData = d3.min(lineData, function(d) {
       return d3.min(d.values, function(dd) {
         return dd.value;
       });
     });
-    minOfStacks = d3.min(stackData, function(d) {
-      return d.totalValue;
-    });
-    maxOfStacks = d3.max(stackData, function(d) {
-      return d.totalValue;
-    });
-    maxOfGroups = d3.max(groupData, function(d) {
-      return d3.max(d, function(dd) {
-        return dd.value;
-      });
-    });
-    minOfGroups = d3.min(groupData, function(d) {
-      return d3.min(d, function(dd) {
-        return dd.value;
-      });
-    });
-    hasBarData = this.get('hasBarData');
-    hasLineData = this.get('hasLineData');
-    stackBars = this.get('stackBars');
-    if (!hasBarData) {
-      min = minOfSeries;
-      max = maxOfSeries;
-    } else if (!hasLineData) {
-      min = stackBars ? minOfStacks : minOfGroups;
-      max = stackBars ? maxOfStacks : maxOfGroups;
-    } else if (stackBars) {
-      min = Math.min(minOfSeries, minOfStacks);
-      max = Math.max(maxOfSeries, maxOfStacks);
-    } else {
-      min = Math.min(minOfGroups, minOfSeries);
-      max = Math.max(maxOfGroups, maxOfSeries);
-    }
-    if (stackBars || this.get('yAxisFromZero') || min === max) {
-      if (max < 0) {
-        return [min, 0];
-      }
-      if (min > 0) {
-        return [0, max];
-      }
-      if ((min === max && max === 0)) {
-        return [-1, 1];
-      }
-    }
-    return [min, max];
-  }).property('groupedLineData', 'stackedBarData', 'groupedBarData', 'hasBarData', 'hasLineData', 'stackBars', 'yAxisFromZero'),
+    return [minOfLineData, maxOfLineData];
+  }).property('groupedLineData'),
   yRange: Ember.computed(function() {
     return [this.get('graphicTop') + this.get('graphicHeight'), this.get('graphicTop')];
   }).property('graphicTop', 'graphicHeight'),
@@ -3463,7 +3422,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   line: Ember.computed(function() {
     var _this = this;
     return d3.svg.line().x(function(d) {
-      return _this.get('xTimeScale')(d.time);
+      return _this.get('xTimeScale')(d.label);
     }).y(function(d) {
       return _this.get('yScale')(d.value);
     }).interpolate(this.get('interpolate') ? 'basis' : 'linear');
