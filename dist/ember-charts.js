@@ -3291,7 +3291,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   groupedLineData: Ember.computed(function() {
     var groupName, groups, lineData, values, _results,
       _this = this;
-    lineData = this.get('lineData');
+    lineData = this.get('data');
     if (Ember.isEmpty(lineData)) {
       return [];
     }

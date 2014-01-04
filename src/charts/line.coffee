@@ -44,7 +44,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   groupedLineData: Ember.computed ->
-    lineData = @get 'lineData'
+    lineData = @get 'data'
     return [] if Ember.isEmpty lineData
 
     groups = Ember.Charts.Helpers.groupBy lineData, (d) =>
