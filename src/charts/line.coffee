@@ -53,7 +53,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       group: groupName
       values: values
 
-  .property 'lineData.@each', 'ungroupedSeriesName'
+  .property 'data.@each', 'ungroupedSeriesName'
 
   groupedBarData: Ember.computed ->
     return []
