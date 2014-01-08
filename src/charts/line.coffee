@@ -402,6 +402,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     series.attr('transform', "translate(0, #{graphicTop})")
     series.select('path.line')
       .attr(@get 'lineAttrs')
+
 )
 
 Ember.Handlebars.helper('line-chart', Ember.Charts.LineComponent)

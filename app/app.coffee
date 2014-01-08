@@ -19,6 +19,7 @@ require 'build/app/controllers/pie'
 require 'build/app/controllers/scatter'
 require 'build/app/controllers/bubble'
 require 'build/app/controllers/line'
+require 'build/app/controllers/area'
 
 # Views
 # None yet
