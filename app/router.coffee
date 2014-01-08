@@ -13,6 +13,7 @@ App.Router.map ->
     @route 'time_series'
     @route 'scatter'
     @route 'line'
+    @route 'area'
     # @route 'bubble'
 
 App.IndexRoute = Ember.Route.extend

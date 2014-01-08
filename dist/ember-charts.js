@@ -3307,7 +3307,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       });
     }
     return _results;
-  }).property('lineData.@each', 'ungroupedSeriesName'),
+  }).property('data.@each', 'ungroupedSeriesName'),
   groupedBarData: Ember.computed(function() {
     return [];
   }).property('barData.@each', 'ungroupedSeriesName'),
@@ -3620,6 +3620,56 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
 });
 
 Ember.Handlebars.helper('line-chart', Ember.Charts.LineComponent);
+
+
+})();
+
+(function() {
+
+
+Ember.Charts.AreaComponent = Ember.Charts.LineComponent.extend({
+  classNames: ['area-line'],
+  area: Ember.computed(function() {
+    var _this = this;
+    return d3.svg.area().x(function(d) {
+      return _this.get('xTimeScale')(d.group);
+    }).y0(function(d) {
+      return _this.get('yScale')(_this.get('yDomain')[0]);
+    }).y1(function(d) {
+      return _this.get('yScale')(d.value);
+    });
+  }).property('xTimeScale', 'yScale'),
+  areaAttrs: Ember.computed(function() {
+    var area;
+    area = this.get('area');
+    return {
+      d: function(d) {
+        return area(d.values);
+      },
+      fill: this.get('getLineColor'),
+      'fill-opacity': 0.5
+    };
+  }).property('area'),
+  updateLineData: function() {
+    var g, series;
+    this.removeAllSeries();
+    series = this.get('series');
+    g = series.enter().append('g').attr('class', 'series');
+    g.append('path').attr('class', 'line');
+    g.append('path').attr('class', 'area');
+    return series.exit().remove();
+  },
+  updateLineGraphic: function() {
+    var graphicTop, series;
+    series = this.get('series');
+    graphicTop = this.get('graphicTop');
+    series.attr('transform', "translate(0, " + graphicTop + ")");
+    series.select('path.line').attr(this.get('lineAttrs'));
+    return series.select('path.area').attr(this.get('areaAttrs'));
+  }
+});
+
+Ember.Handlebars.helper('area-chart', Ember.Charts.AreaComponent);
 
 
 })();
