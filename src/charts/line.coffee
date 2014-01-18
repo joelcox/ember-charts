@@ -7,29 +7,12 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
-  formatTime: d3.time.format('%Y')
   formatValue: d3.format('.2s')
   formatYear: d3.format('d')
-
-  # Data without group will be merged into a group with this name
-  ungroupedSeriesName: 'Other'
-
-  # If stackBars is no then it stacks bars, otherwise it groups them
-  # horizontally. Stacking discards negative data.
-  stackBars: no
 
   # Use basis interpolation? Smooths lines but may prevent extrema from being
   # displayed
   interpolate: no
-
-  # Force the Y axis to start at zero, instead of the smallest Y value provided
-  yAxisFromZero: no
-
-  # Space between bars, as fraction of total bar + padding space
-  barPadding: 0
-
-  # Space between bar groups, as fraction of total bar + padding space
-  barGroupPadding: 0.25
 
   removeAllSeries: ->
     @get('viewport').selectAll('.series').remove()
@@ -52,19 +35,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       group: groupName
       values: values
 
-  .property 'data.@each', 'ungroupedSeriesName'
-
-  groupedBarData: Ember.computed ->
-    return []
-  .property 'barData.@each', 'ungroupedSeriesName'
-
-  barGroups: Ember.computed ->
-    return []
-  .property 'barData.@each', 'ungroupedSeriesName'
-
-  stackedBarData: Ember.computed ->
-    return []
-  .property 'barData', 'ungroupedSeriesName'
+  .property 'data.@each'
 
   # Combine all data for testing purposes
   finishedData: Ember.computed ->
@@ -96,14 +67,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   graphicHeight: Ember.computed ->
     @get('height') - @get('legendHeight') - @get('legendChartPadding')
   .property('height', 'legendHeight', 'legendChartPadding')
-
-  individualBarLabels: Ember.computed.alias 'barGroups'
-
-  # The time range over which all bar groups/bar stacks are drawn
-  xBetweenGroupDomain: Ember.computed.alias 'barDataExtent'
-
-  # The range of labels assigned within each group
-  xWithinGroupDomain: Ember.computed.alias 'individualBarLabels'
 
   # ----------------------------------------------------------------------------
   # Line Drawing Scales
@@ -185,9 +148,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # Styles
   # ----------------------------------------------------------------------------
 
-  # Number of pixels to shift graphics away from origin line
-  zeroDisplacement: 1
-
   line: Ember.computed ->
     d3.svg.line()
       .x((d) => @get('xTimeScale') d.group)
@@ -243,13 +203,9 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   numLines: Ember.computed.alias 'xBetweenSeriesDomain.length'
-  numBarsPerGroup: Ember.computed.alias 'xWithinGroupDomain.length'
-
   numColorSeries: 6 # Ember.computed.alias 'numLines'
-  numSecondaryColorSeries: Ember.computed.alias 'numBarsPerGroup'
 
   # Use primary colors for bars if there are no lines
-
   secondaryMinimumTint: Ember.computed ->
     if @get('numLines') is 0 then 0 else 0.4
   .property 'numLines'
@@ -277,15 +233,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       dotted: lineAttrs['stroke-dasharray'](d, i)
       icon: -> 'line'
       selector: ".series-#{i}"
-    .concat @get('xWithinGroupDomain').map (d, i) =>
-      # Bar legend items
-      color = @get('getSecondarySeriesColor')(d, i)
-      stroke: color
-      fill: color
-      label: d
-      icon: -> 'square'
-      selector: ".grouping-#{i}"
-  .property('xBetweenSeriesDomain', 'xWithinGroupDomain',
+  .property('xBetweenSeriesDomain',
     'getSeriesColor', 'getSecondarySeriesColor')
 
   # ----------------------------------------------------------------------------

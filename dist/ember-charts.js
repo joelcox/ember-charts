@@ -3272,15 +3272,9 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
-  formatTime: d3.time.format('%Y'),
   formatValue: d3.format('.2s'),
   formatYear: d3.format('d'),
-  ungroupedSeriesName: 'Other',
-  stackBars: false,
   interpolate: false,
-  yAxisFromZero: false,
-  barPadding: 0,
-  barGroupPadding: 0.25,
   removeAllSeries: function() {
     return this.get('viewport').selectAll('.series').remove();
   },
@@ -3306,16 +3300,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       });
     }
     return _results;
-  }).property('data.@each', 'ungroupedSeriesName'),
-  groupedBarData: Ember.computed(function() {
-    return [];
-  }).property('barData.@each', 'ungroupedSeriesName'),
-  barGroups: Ember.computed(function() {
-    return [];
-  }).property('barData.@each', 'ungroupedSeriesName'),
-  stackedBarData: Ember.computed(function() {
-    return [];
-  }).property('barData', 'ungroupedSeriesName'),
+  }).property('data.@each'),
   finishedData: Ember.computed(function() {
     return {
       lineData: this.get('groupedLineData')
@@ -3336,9 +3321,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   graphicHeight: Ember.computed(function() {
     return this.get('height') - this.get('legendHeight') - this.get('legendChartPadding');
   }).property('height', 'legendHeight', 'legendChartPadding'),
-  individualBarLabels: Ember.computed.alias('barGroups'),
-  xBetweenGroupDomain: Ember.computed.alias('barDataExtent'),
-  xWithinGroupDomain: Ember.computed.alias('individualBarLabels'),
   lineSeriesNames: Ember.computed(function() {
     var data;
     data = this.get('groupedLineData');
@@ -3417,7 +3399,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   xTimeScale: Ember.computed(function() {
     return d3.scale.linear().domain(this.get('xDomain')).range(this.get('xRange')).nice(this.get('numXTicks'));
   }).property('xDomain', 'xRange'),
-  zeroDisplacement: 1,
   line: Ember.computed(function() {
     var _this = this;
     return d3.svg.line().x(function(d) {
@@ -3494,9 +3475,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     };
   }).property('line', 'getSeriesColor'),
   numLines: Ember.computed.alias('xBetweenSeriesDomain.length'),
-  numBarsPerGroup: Ember.computed.alias('xWithinGroupDomain.length'),
   numColorSeries: 6,
-  numSecondaryColorSeries: Ember.computed.alias('numBarsPerGroup'),
   secondaryMinimumTint: Ember.computed(function() {
     if (this.get('numLines') === 0) {
       return 0;
@@ -3530,20 +3509,8 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
         },
         selector: ".series-" + i
       };
-    }).concat(this.get('xWithinGroupDomain').map(function(d, i) {
-      var color;
-      color = _this.get('getSecondarySeriesColor')(d, i);
-      return {
-        stroke: color,
-        fill: color,
-        label: d,
-        icon: function() {
-          return 'square';
-        },
-        selector: ".grouping-" + i
-      };
-    }));
-  }).property('xBetweenSeriesDomain', 'xWithinGroupDomain', 'getSeriesColor', 'getSecondarySeriesColor'),
+    });
+  }).property('xBetweenSeriesDomain', 'getSeriesColor', 'getSecondarySeriesColor'),
   showLegendDetails: Ember.computed(function() {
     return function() {
       return null;
