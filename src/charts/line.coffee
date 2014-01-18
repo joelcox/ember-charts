@@ -7,10 +7,9 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
-  formatTime: d3.time.format('%Y-%m-%d')
-  formatTimeLong: d3.time.format('%a %b %-d, %Y')
+  formatTime: d3.time.format('%Y')
   formatValue: d3.format('.2s')
-  formatValueLong: d3.format(',.r')
+  formatYear: d3.format('d')
 
   # Data without group will be merged into a group with this name
   ungroupedSeriesName: 'Other'
@@ -134,9 +133,12 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # Ticks and Scales
   # ----------------------------------------------------------------------------
 
-  # Override maxNumberOfLabels in the time series labeler mixin, setting it to
-  # the dynamically computed number of ticks going on the time series axis
-  maxNumberOfLabels: Ember.computed.alias 'numXTicks'
+  # Override axis mixin to correct for the amount of years we want to
+  # display across the x-axis
+  numXTicks: Ember.computed ->
+    yearsDomain = @get 'xDomain'
+    yearsDomain[1] - yearsDomain[0]
+  .property 'xDomain'
 
   # Create a domain that spans the larger range of line data
   xDomain: Ember.computed ->
@@ -165,7 +167,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     d3.scale.linear()
       .domain(@get('yDomain'))
       .range(@get('yRange'))
-      .nice(@get 'numYTicks')
+      .nice(@get('numYTicks'))
   .property 'yDomain', 'yRange', 'numYTicks'
 
   xRange: Ember.computed ->
@@ -173,19 +175,11 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   .property 'graphicLeft', 'graphicWidth'
 
   xTimeScale: Ember.computed ->
-    xDomain = @get 'xDomain'
-    d3.time.scale()
+    d3.scale.linear()
       .domain(@get('xDomain'))
       .range(@get('xRange'))
+      .nice(@get('numXTicks'))
   .property 'xDomain', 'xRange'
-
-  xGroupScale: Ember.computed ->
-    d3.scale.ordinal()
-      .domain(0)
-      .rangeRoundBands([ 0, @get('paddedGroupWidth')],
-        @get('barPadding')/2, @get('barGroupPadding')/2)
-  .property('xWithinGroupDomain', 'paddedGroupWidth',
-    'barPadding', 'barGroupPadding')
 
   # ----------------------------------------------------------------------------
   # Styles
@@ -334,7 +328,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # Drawing Functions
   # ----------------------------------------------------------------------------
 
-  renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale']
+  renderVars: ['getLabelledTicks', 'xTimeScale', 'yScale']
 
   drawChart: ->
     @updateLineData()
@@ -346,14 +340,11 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       @clearLegend()
 
   updateAxes: ->
-
     xAxis = d3.svg.axis()
       .scale(@get 'xTimeScale')
       .orient('bottom')
-      .ticks(@get 'getLabelledTicks')
-      .tickSubdivide(@get 'numberOfMinorTicks')
-      .tickFormat(@get 'formattedTime')
-      .tickSize(6, 3, 0)
+      .ticks(@get 'numXTicks')
+      .tickFormat(@get 'formatYear')
 
     yAxis = d3.svg.axis()
       .scale(@get 'yScale')

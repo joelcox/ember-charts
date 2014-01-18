@@ -3272,10 +3272,9 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
-  formatTime: d3.time.format('%Y-%m-%d'),
-  formatTimeLong: d3.time.format('%a %b %-d, %Y'),
+  formatTime: d3.time.format('%Y'),
   formatValue: d3.format('.2s'),
-  formatValueLong: d3.format(',.r'),
+  formatYear: d3.format('d'),
   ungroupedSeriesName: 'Other',
   stackBars: false,
   interpolate: false,
@@ -3371,7 +3370,11 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   }).property('groupedLineData.@each.values'),
   xBetweenSeriesDomain: Ember.computed.alias('lineSeriesNames'),
   xWithinSeriesDomain: Ember.computed.alias('lineDataExtent'),
-  maxNumberOfLabels: Ember.computed.alias('numXTicks'),
+  numXTicks: Ember.computed(function() {
+    var yearsDomain;
+    yearsDomain = this.get('xDomain');
+    return yearsDomain[1] - yearsDomain[0];
+  }).property('xDomain'),
   xDomain: Ember.computed(function() {
     var lineData, maxOfLineData, minOfLineData;
     lineData = this.get('groupedLineData');
@@ -3412,13 +3415,8 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     return [this.get('graphicLeft'), this.get('graphicLeft') + this.get('graphicWidth')];
   }).property('graphicLeft', 'graphicWidth'),
   xTimeScale: Ember.computed(function() {
-    var xDomain;
-    xDomain = this.get('xDomain');
-    return d3.time.scale().domain(this.get('xDomain')).range(this.get('xRange'));
+    return d3.scale.linear().domain(this.get('xDomain')).range(this.get('xRange')).nice(this.get('numXTicks'));
   }).property('xDomain', 'xRange'),
-  xGroupScale: Ember.computed(function() {
-    return d3.scale.ordinal().domain(0).rangeRoundBands([0, this.get('paddedGroupWidth')], this.get('barPadding') / 2, this.get('barGroupPadding') / 2);
-  }).property('xWithinGroupDomain', 'paddedGroupWidth', 'barPadding', 'barGroupPadding'),
   zeroDisplacement: 1,
   line: Ember.computed(function() {
     var _this = this;
@@ -3574,7 +3572,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       return yAxis;
     }
   }).volatile(),
-  renderVars: ['getLabelledTicks', 'xGroupScale', 'xTimeScale', 'yScale'],
+  renderVars: ['getLabelledTicks', 'xTimeScale', 'yScale'],
   drawChart: function() {
     this.updateLineData();
     this.updateAxes();
@@ -3587,7 +3585,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   },
   updateAxes: function() {
     var gXAxis, gYAxis, graphicHeight, graphicLeft, graphicTop, xAxis, yAxis;
-    xAxis = d3.svg.axis().scale(this.get('xTimeScale')).orient('bottom').ticks(this.get('getLabelledTicks')).tickSubdivide(this.get('numberOfMinorTicks')).tickFormat(this.get('formattedTime')).tickSize(6, 3, 0);
+    xAxis = d3.svg.axis().scale(this.get('xTimeScale')).orient('bottom').ticks(this.get('numXTicks')).tickFormat(this.get('formatYear'));
     yAxis = d3.svg.axis().scale(this.get('yScale')).orient('right').ticks(this.get('numYTicks')).tickSize(this.get('graphicWidth')).tickFormat(this.get('formatValue'));
     graphicTop = this.get('graphicTop');
     graphicHeight = this.get('graphicHeight');
