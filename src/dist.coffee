@@ -23,3 +23,5 @@ require 'build/src/charts/time_series'
 require 'build/src/charts/bubble'
 require 'build/src/charts/line'
 require 'build/src/charts/area'
+require 'build/src/charts/map'
+

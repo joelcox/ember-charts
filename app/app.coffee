@@ -20,6 +20,8 @@ require 'build/app/controllers/scatter'
 require 'build/app/controllers/bubble'
 require 'build/app/controllers/line'
 require 'build/app/controllers/area'
+require 'build/app/controllers/map'
+
 
 # Views
 # None yet

@@ -14,6 +14,7 @@ App.Router.map ->
     @route 'scatter'
     @route 'line'
     @route 'area'
+    @route 'map'
     # @route 'bubble'
 
 App.IndexRoute = Ember.Route.extend

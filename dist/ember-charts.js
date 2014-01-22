@@ -3638,3 +3638,86 @@ Ember.Handlebars.helper('area-chart', Ember.Charts.AreaComponent);
 
 
 })();
+
+(function() {
+
+
+Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
+  classNames: ['chart-map'],
+  finishedData: Ember.computed(function() {
+    return [
+      {
+        "label": "GBP growth",
+        "group": "Belgium",
+        "value": 20
+      }, {
+        "label": "GBP growth",
+        "group": "Germany",
+        "value": 32
+      }, {
+        "label": "GBP growth",
+        "group": "France",
+        "value": 36
+      }
+    ];
+  }),
+  countries: Ember.computed(function() {
+    return this.get('viewport').append('svg:g').attr('id', 'countries');
+  }).volatile(),
+  projection: Ember.computed(function() {
+    return d3.geo.albersUsa().scale(1070).translate([this.get('width' / 2, this.get('height' / 2))]);
+  }).property('width', 'height'),
+  pathz: Ember.computed(function() {
+    var proj;
+    proj = this.get('projection');
+    return d3.geo.path();
+  }).property('projection'),
+  colorScale: Ember.computed(function() {
+    return d3.scale.quantize().domain([0, 100]).range([1, 2, 3, 4, 5]);
+  }).property,
+  renderVars: ['countries', 'projection'],
+  drawChart: function() {
+    var countries, dat, path, projection, scale,
+      _this = this;
+    dat = [
+      {
+        "label": "GBP growth",
+        "group": "Belgium",
+        "value": 20
+      }, {
+        "label": "GBP growth",
+        "group": "Germany",
+        "value": 32
+      }, {
+        "label": "GBP growth",
+        "group": "France",
+        "value": 36
+      }
+    ];
+    scale = this.get('colorScale');
+    scale = d3.scale.quantize().domain([0, 100]).range([1, 2, 3, 4, 5]);
+    countries_data.features.forEach(function(item) {
+      item.properties.value = Math.floor(Math.random() * 100) + 1;
+      if (item.properties.name === 'Germany') {
+        item.properties.value = 100;
+      }
+      if (item.properties.name === 'Belgium') {
+        item.properties.value = 100;
+      }
+      if (item.properties.name === 'France') {
+        return item.properties.value = 100;
+      }
+    });
+    countries = this.get('countries');
+    projection = d3.geo.equirectangular().scale(100).translate([this.get('width') / 2, this.get('height') / 2]);
+    path = d3.geo.path().projection(projection);
+    return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('fill', function(d) {
+      return 'rgba(0, 0, 0, ' + d.properties.value * 0.01 + ')';
+    }).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
+  }
+});
+
+Ember.Handlebars.helper('map-chart', Ember.Charts.MapComponent);
+
+
+})();
