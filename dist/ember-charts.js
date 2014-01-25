@@ -3644,58 +3644,73 @@ Ember.Handlebars.helper('area-chart', Ember.Charts.AreaComponent);
 
 Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
   classNames: ['chart-map'],
+  values: Ember.computed(function() {
+    var _this = this;
+    return this.get('data').map(function(item) {
+      return item.value;
+    });
+  }).property('data'),
+  minValue: Ember.computed(function() {
+    return d3.min(this.get('values'));
+  }).property('values'),
+  maxValue: Ember.computed(function() {
+    return d3.max(this.get('values'));
+  }).property('values'),
   finishedData: Ember.computed(function() {
-    return [
-      {
-        "label": "GBP growth",
-        "group": "Belgium",
-        "value": 20
-      }, {
-        "label": "GBP growth",
-        "group": "Germany",
-        "value": 32
-      }, {
-        "label": "GBP growth",
-        "group": "France",
-        "value": 36
-      }
-    ];
-  }),
+    return this.get('data');
+  }).property('data'),
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).volatile(),
   projection: Ember.computed(function() {
-    return d3.geo.albersUsa().scale(1070).translate([this.get('width' / 2, this.get('height' / 2))]);
-  }).property('width', 'height'),
-  pathz: Ember.computed(function() {
-    var proj;
-    proj = this.get('projection');
-    return d3.geo.path();
+    return d3.geo.equirectangular().scale(this.get('projectionScale')).translate([this.get('width') / 2, this.get('height') / 2]);
+  }).property('width', 'height', 'projectionScale'),
+  path: Ember.computed(function() {
+    return d3.geo.path(this.get('projection'));
   }).property('projection'),
-  colorScale: Ember.computed(function() {
-    return d3.scale.quantize().domain([0, 100]).range([1, 2, 3, 4, 5]);
-  }).property,
-  renderVars: ['countries', 'projection'],
-  drawChart: function() {
-    var countries, dat, path, projection, scale,
+  mapBounds: Ember.computed(function() {
+    var maxHeight, maxWidth, minHeight, minWidth, path,
       _this = this;
-    dat = [
-      {
-        "label": "GBP growth",
-        "group": "Belgium",
-        "value": 20
-      }, {
-        "label": "GBP growth",
-        "group": "Germany",
-        "value": 32
-      }, {
-        "label": "GBP growth",
-        "group": "France",
-        "value": 36
+    path = this.get('bootstrapPath');
+    minWidth = maxHeight = maxWidth = minHeight = null;
+    countries_data.features.forEach(function(country) {
+      var bounds;
+      bounds = path.bounds(country);
+      if (minWidth < bounds[0][0] || minHeight === null) {
+        minWidth = bounds[0][0];
       }
-    ];
-    scale = this.get('colorScale');
-    scale = d3.scale.quantize().domain([0, 100]).range([1, 2, 3, 4, 5]);
+      if (maxHeight < bounds[0][1] || maxHeight === null) {
+        maxHeight = bounds[0][1];
+      }
+      if (maxWidth < bounds[1][0] || maxWidth === null) {
+        maxWidth = bounds[1][0];
+      }
+      if (minHeight > bounds[1][1] || minHeight === null) {
+        return minHeight = bounds[1][1];
+      }
+    });
+    return [[minWidth, maxHeight], [maxWidth, minHeight]];
+  }).property(),
+  projectionScale: Ember.computed(function() {
+    var mapBounds;
+    mapBounds = this.get('mapBounds');
+    return .95 / Math.max((mapBounds[1][0] - mapBounds[0][0]) / this.get('width'), (mapBounds[1][1] - mapBounds[0][1]) / this.get('height'));
+  }).property('mapBounds', 'width', 'height'),
+  bootstrapPath: Ember.computed(function() {
+    var projection;
+    projection = d3.geo.equirectangular().scale(390).translate([this.get('width') / 2, this.get('height') / 2]);
+    return d3.geo.path().projection(projection);
+  }).property('width', 'height'),
+  colorScale: Ember.computed(function() {
+    return d3.scale.quantize().domain([this.get('minValue', this.get('maxValue'))]).range([1, 2, 3, 4, 5]);
+  }).property('minValue', 'maxValue'),
+  renderVars: ['countries', 'projection', 'projectionScale'],
+  drawChart: function() {
+    var colorScale, countries, data, path,
+      _this = this;
+    countries = this.get('countries');
+    data = this.get('finishedData');
+    colorScale = this.get('colorScale');
     countries_data.features.forEach(function(item) {
       item.properties.value = Math.floor(Math.random() * 100) + 1;
       if (item.properties.name === 'Germany') {
@@ -3708,9 +3723,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
         return item.properties.value = 100;
       }
     });
-    countries = this.get('countries');
-    projection = d3.geo.equirectangular().scale(100).translate([this.get('width') / 2, this.get('height') / 2]);
-    path = d3.geo.path().projection(projection);
+    path = d3.geo.path().projection(this.get('projection'));
     return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('fill', function(d) {
       return 'rgba(0, 0, 0, ' + d.properties.value * 0.01 + ')';
     }).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
