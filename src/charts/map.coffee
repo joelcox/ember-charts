@@ -1,5 +1,6 @@
 
 Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
+  Ember.Charts.Legend
   classNames: ['chart-map']
 
   # ----------------------------------------------------------------------------
@@ -30,6 +31,42 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   countries: Ember.computed ->
     @get('viewport').append('svg:g').attr('id', 'countries');
   .volatile()
+
+
+  # ----------------------------------------------------------------------------
+  # Legend Configuration
+  # ----------------------------------------------------------------------------
+
+  hasLegend: Ember.computed ->
+    @get('legendItems.length') > 1
+  .property 'legendItems.length'
+
+  legendItems: Ember.computed ->
+
+    unit = (@get('maxValue') - @get('minValue')) / 5
+    bound = (i, max, min) ->
+      ((max - min) / 5) * i + min
+
+    [1, 2, 3, 4, 5].map (d, i) =>
+      label: bound(i, @get('maxValue'), @get('minValue')) + ' - ' + bound(i + 1, @get('maxValue'), @get('minValue'))
+      icon: -> 'square'
+      fill: 'rgba(0, 0, 0, ' + d * 0.2 +')'
+      width: 2.5
+
+  .property('maxValue', 'minValue')
+
+
+  # ----------------------------------------------------------------------------
+  # Tooltip overwrites
+  # ----------------------------------------------------------------------------
+
+  showLegendDetails: Ember.computed ->
+    return ->
+      null
+
+  hideLegendDetails: Ember.computed ->
+    return ->
+      null
 
   # ----------------------------------------------------------------------------
   # D3 properties
@@ -97,6 +134,9 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   renderVars: ['countries', 'projection', 'projectionScale']
 
   drawChart: ->
+
+    @drawLegend()
+
     countries = @get 'countries'
     data = @get 'finishedData'
     colorScale = @get 'colorScale'

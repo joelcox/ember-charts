@@ -3642,7 +3642,7 @@ Ember.Handlebars.helper('area-chart', Ember.Charts.AreaComponent);
 (function() {
 
 
-Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
+Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, {
   classNames: ['chart-map'],
   values: Ember.computed(function() {
     var _this = this;
@@ -3662,6 +3662,37 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).volatile(),
+  hasLegend: Ember.computed(function() {
+    return this.get('legendItems.length') > 1;
+  }).property('legendItems.length'),
+  legendItems: Ember.computed(function() {
+    var bound, unit,
+      _this = this;
+    unit = (this.get('maxValue') - this.get('minValue')) / 5;
+    bound = function(i, max, min) {
+      return ((max - min) / 5) * i + min;
+    };
+    return [1, 2, 3, 4, 5].map(function(d, i) {
+      return {
+        label: bound(i, _this.get('maxValue'), _this.get('minValue')) + ' - ' + bound(i + 1, _this.get('maxValue'), _this.get('minValue')),
+        icon: function() {
+          return 'square';
+        },
+        fill: 'rgba(0, 0, 0, ' + d * 0.2 + ')',
+        width: 2.5
+      };
+    });
+  }).property('maxValue', 'minValue'),
+  showLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
+    };
+  }),
+  hideLegendDetails: Ember.computed(function() {
+    return function() {
+      return null;
+    };
+  }),
   projection: Ember.computed(function() {
     return d3.geo.equirectangular().scale(this.get('projectionScale')).translate([this.get('width') / 2, this.get('height') / 2]);
   }).property('width', 'height', 'projectionScale'),
@@ -3708,6 +3739,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend({
   drawChart: function() {
     var colorScale, countries, data, path,
       _this = this;
+    this.drawLegend();
     countries = this.get('countries');
     data = this.get('finishedData');
     colorScale = this.get('colorScale');
