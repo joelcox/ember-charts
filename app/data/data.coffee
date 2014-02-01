@@ -61,3 +61,6 @@ require 'build/app/data/time_series/same_value_grouped'
 
 # bubble chart data
 require 'build/app/data/bubble/default'
+
+# map chart data
+require 'build/app/data/map'

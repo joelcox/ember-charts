@@ -24,6 +24,10 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
     @get 'data'
   .property('data')
 
+  unit: Ember.computed ->
+    (@get('maxValue') - @get('minValue')) / 5
+  .property('maxValue', 'minValue')
+
   # ----------------------------------------------------------------------------
   # Selections
   # ----------------------------------------------------------------------------
@@ -43,7 +47,6 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
 
   legendItems: Ember.computed ->
 
-    unit = (@get('maxValue') - @get('minValue')) / 5
     bound = (i, max, min) ->
       ((max - min) / 5) * i + min
 
@@ -53,7 +56,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       fill: 'rgba(0, 0, 0, ' + d * 0.2 +')'
       width: 2.5
 
-  .property('maxValue', 'minValue')
+  .property('maxValue', 'minValue', 'unit')
 
 
   # ----------------------------------------------------------------------------
@@ -127,11 +130,11 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
 
   colorScale: Ember.computed ->
     d3.scale.quantize()
-      .domain([@get 'minValue', @get 'maxValue'])
-      .range([1, 2, 3, 4, 5])
+      .domain([@get('minValue'), @get('maxValue')])
+      .range([5, 4, 3, 2, 1])
   .property('minValue', 'maxValue')
 
-  renderVars: ['countries', 'projection', 'projectionScale']
+  renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit']
 
   drawChart: ->
 
@@ -142,13 +145,10 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
     colorScale = @get 'colorScale'
 
     countries_data.features.forEach (item) =>
-      item.properties.value = Math.floor(Math.random() * 100) + 1
-      if item.properties.name == 'Germany'
-        item.properties.value = 100
-      if item.properties.name == 'Belgium'
-        item.properties.value = 100
-      if item.properties.name == 'France'
-        item.properties.value = 100
+
+      filtered = data.findBy('label', item.properties.name)
+      if (filtered != undefined)
+        item.properties.value = filtered.value
 
     # Create a new path of the real projection with correct scale
     path = d3.geo.path().projection(@get 'projection')
@@ -159,8 +159,14 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       .append('svg:path')
       .attr('d', path)
       .attr('fill', (d) =>
-        'rgba(0, 0, 0, ' + d.properties.value * 0.01 +')'
-        )
+        if d.properties.value != undefined
+          unit = @get 'unit'
+          scaleUnit = Math.ceil((d.properties.value - @get('minValue')) / unit)
+          scaleUnit = 1 if scaleUnit == 0
+          'rgba(0, 0, 0, ' + scaleUnit * 0.2 + ')'
+        else
+          'rgba(255, 255, 255, 1)'
+      )
       .attr('stroke', 'rgba(0, 0, 0, 0.2)')
       .attr('stroke-width', 1)
 

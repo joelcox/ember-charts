@@ -3659,6 +3659,9 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   finishedData: Ember.computed(function() {
     return this.get('data');
   }).property('data'),
+  unit: Ember.computed(function() {
+    return (this.get('maxValue') - this.get('minValue')) / 5;
+  }).property('maxValue', 'minValue'),
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).volatile(),
@@ -3666,9 +3669,8 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return this.get('legendItems.length') > 1;
   }).property('legendItems.length'),
   legendItems: Ember.computed(function() {
-    var bound, unit,
+    var bound,
       _this = this;
-    unit = (this.get('maxValue') - this.get('minValue')) / 5;
     bound = function(i, max, min) {
       return ((max - min) / 5) * i + min;
     };
@@ -3682,7 +3684,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
         width: 2.5
       };
     });
-  }).property('maxValue', 'minValue'),
+  }).property('maxValue', 'minValue', 'unit'),
   showLegendDetails: Ember.computed(function() {
     return function() {
       return null;
@@ -3733,9 +3735,9 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return d3.geo.path().projection(projection);
   }).property('width', 'height'),
   colorScale: Ember.computed(function() {
-    return d3.scale.quantize().domain([this.get('minValue', this.get('maxValue'))]).range([1, 2, 3, 4, 5]);
+    return d3.scale.quantize().domain([this.get('minValue'), this.get('maxValue')]).range([5, 4, 3, 2, 1]);
   }).property('minValue', 'maxValue'),
-  renderVars: ['countries', 'projection', 'projectionScale'],
+  renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit'],
   drawChart: function() {
     var colorScale, countries, data, path,
       _this = this;
@@ -3744,20 +3746,25 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     data = this.get('finishedData');
     colorScale = this.get('colorScale');
     countries_data.features.forEach(function(item) {
-      item.properties.value = Math.floor(Math.random() * 100) + 1;
-      if (item.properties.name === 'Germany') {
-        item.properties.value = 100;
-      }
-      if (item.properties.name === 'Belgium') {
-        item.properties.value = 100;
-      }
-      if (item.properties.name === 'France') {
-        return item.properties.value = 100;
+      var filtered;
+      filtered = data.findBy('label', item.properties.name);
+      if (filtered !== void 0) {
+        return item.properties.value = filtered.value;
       }
     });
     path = d3.geo.path().projection(this.get('projection'));
     return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('fill', function(d) {
-      return 'rgba(0, 0, 0, ' + d.properties.value * 0.01 + ')';
+      var scaleUnit, unit;
+      if (d.properties.value !== void 0) {
+        unit = _this.get('unit');
+        scaleUnit = Math.ceil((d.properties.value - _this.get('minValue')) / unit);
+        if (scaleUnit === 0) {
+          scaleUnit = 1;
+        }
+        return 'rgba(0, 0, 0, ' + scaleUnit * 0.2 + ')';
+      } else {
+        return 'rgba(255, 255, 255, 1)';
+      }
     }).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
   }
 });
