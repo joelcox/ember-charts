@@ -10,7 +10,7 @@ Ember.Charts.Legend = Ember.Mixin.create
   # Acceptable dimensions for each legend item
   legendItemHeight: 18
   minLegendItemWidth: 120
-  maxLegendItemWidth: 160
+  maxLegendItemWidth: 260
 
   # Radius of each legend icon
   legendIconRadius: 9
