@@ -16,7 +16,7 @@ Ember.Charts.Legend = Ember.Mixin.create
   legendIconRadius: 9
 
   # Padding between each legend icon and padding
-  legendLabelPadding: 10
+  legendLabelPadding: 5
 
   # ----------------------------------------------------------------------------
   # Layout
