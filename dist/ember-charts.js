@@ -579,9 +579,9 @@ Ember.Charts.Legend = Ember.Mixin.create({
   legendTopPadding: 10,
   legendItemHeight: 18,
   minLegendItemWidth: 120,
-  maxLegendItemWidth: 160,
+  maxLegendItemWidth: 260,
   legendIconRadius: 9,
-  legendLabelPadding: 10,
+  legendLabelPadding: 5,
   legendWidth: Ember.computed.alias('width'),
   legendHeight: Ember.computed(function() {
     return this.get('numLegendRows') * this.get('legendItemHeight');
@@ -3696,43 +3696,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     };
   }),
   projection: Ember.computed(function() {
-    return d3.geo.equirectangular().scale(this.get('projectionScale')).translate([this.get('width') / 2, this.get('height') / 2]);
-  }).property('width', 'height', 'projectionScale'),
-  path: Ember.computed(function() {
-    return d3.geo.path(this.get('projection'));
-  }).property('projection'),
-  mapBounds: Ember.computed(function() {
-    var maxHeight, maxWidth, minHeight, minWidth, path,
-      _this = this;
-    path = this.get('bootstrapPath');
-    minWidth = maxHeight = maxWidth = minHeight = null;
-    countries_data.features.forEach(function(country) {
-      var bounds;
-      bounds = path.bounds(country);
-      if (minWidth < bounds[0][0] || minHeight === null) {
-        minWidth = bounds[0][0];
-      }
-      if (maxHeight < bounds[0][1] || maxHeight === null) {
-        maxHeight = bounds[0][1];
-      }
-      if (maxWidth < bounds[1][0] || maxWidth === null) {
-        maxWidth = bounds[1][0];
-      }
-      if (minHeight > bounds[1][1] || minHeight === null) {
-        return minHeight = bounds[1][1];
-      }
-    });
-    return [[minWidth, maxHeight], [maxWidth, minHeight]];
-  }).property(),
-  projectionScale: Ember.computed(function() {
-    var mapBounds;
-    mapBounds = this.get('mapBounds');
-    return .95 / Math.max((mapBounds[1][0] - mapBounds[0][0]) / this.get('width'), (mapBounds[1][1] - mapBounds[0][1]) / this.get('height'));
-  }).property('mapBounds', 'width', 'height'),
-  bootstrapPath: Ember.computed(function() {
-    var projection;
-    projection = d3.geo.equirectangular().scale(390).translate([this.get('width') / 2, this.get('height') / 2]);
-    return d3.geo.path().projection(projection);
+    return d3.geo.equirectangular().scale((this.get('width') + 1) / 2 / Math.PI).translate([this.get('width') / 2, this.get('height') / 1.8]);
   }).property('width', 'height'),
   colorScale: Ember.computed(function() {
     return d3.scale.quantize().domain([this.get('minValue'), this.get('maxValue')]).range([5, 4, 3, 2, 1]);
@@ -3753,8 +3717,12 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
       }
     });
     path = d3.geo.path().projection(this.get('projection'));
-    return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('fill', function(d) {
+    return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('prop', function(d) {
+      console.log(d.id);
+      return d.id;
+    }).attr('fill', function(d) {
       var scaleUnit, unit;
+      console.log(d);
       if (d.properties.value !== void 0) {
         unit = _this.get('unit');
         scaleUnit = Math.ceil((d.properties.value - _this.get('minValue')) / unit);

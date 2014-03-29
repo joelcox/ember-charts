@@ -79,53 +79,8 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   # the computed scale
   projection: Ember.computed ->
     d3.geo.equirectangular()
-      .scale(@get 'projectionScale')
-      .translate([@get('width') / 2, @get('height') / 2])
-  .property('width', 'height', 'projectionScale')
-
-  path: Ember.computed ->
-    d3.geo.path @get 'projection'
-  .property('projection')
-
-  # Computes the minimal and maximum bounds of the features
-  mapBounds: Ember.computed ->
-
-    # Find the bounds
-    path = @get 'bootstrapPath'
-    minWidth = maxHeight = maxWidth = minHeight = null
-
-    countries_data.features.forEach (country) =>
-      bounds = path.bounds country
-
-      if minWidth < bounds[0][0] or minHeight == null
-        minWidth = bounds[0][0]
-      if maxHeight < bounds[0][1] or maxHeight == null
-        maxHeight = bounds[0][1]
-      if maxWidth < bounds[1][0] or maxWidth == null
-        maxWidth = bounds[1][0]
-      if minHeight > bounds[1][1] or minHeight == null
-        minHeight = bounds[1][1]
-
-    [[minWidth, maxHeight], [maxWidth, minHeight]]
-  .property()
-
-  projectionScale: Ember.computed ->
-
-    # In order to find the scale, we somehow need to bootstrap a path
-    # to get the scale and projection. Not quite sure how to clean this up
-    mapBounds = @get 'mapBounds'
-    .95 / Math.max((mapBounds[1][0] - mapBounds[0][0]) / @get('width'), (mapBounds[1][1] - mapBounds[0][1]) / @get('height'))
-  .property('mapBounds', 'width', 'height')
-
-  # An initial path used to compute the scale
-  bootstrapPath: Ember.computed ->
-
-    projection = d3.geo.equirectangular()
-       .scale(390)
-       .translate([@get('width') / 2, @get('height') / 2])
-
-    d3.geo.path().projection(projection)
-
+      .scale((@get('width') + 1) / 2 / Math.PI)
+      .translate([@get('width') / 2, @get('height') / 1.8])
   .property('width', 'height')
 
   colorScale: Ember.computed ->
@@ -158,7 +113,12 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       .enter()
       .append('svg:path')
       .attr('d', path)
+      .attr('prop', (d) =>
+        console.log d.id
+        d.id
+      )
       .attr('fill', (d) =>
+        console.log(d);
         if d.properties.value != undefined
           unit = @get 'unit'
           scaleUnit = Math.ceil((d.properties.value - @get('minValue')) / unit)
