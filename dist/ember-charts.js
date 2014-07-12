@@ -3660,8 +3660,22 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return this.get('data');
   }).property('data'),
   unit: Ember.computed(function() {
-    return (this.get('maxValue') - this.get('minValue')) / 5;
-  }).property('maxValue', 'minValue'),
+    return (this.get('maxValue') - this.get('minValue')) / this.get('numColorSeries');
+  }).property('maxValue', 'minValue', 'numColorSeries'),
+  seriesNumFromValue: Ember.computed(function() {
+    var minValue, unit;
+    minValue = this.get('minValue');
+    unit = this.get('unit');
+    return function(value) {
+      return Math.floor((value - minValue) / unit);
+    };
+  }).property('minValue', 'unit'),
+  numColorSeries: 5,
+  colorScale: Ember.computed(function() {
+    var scaleRange;
+    scaleRange = [this.get('colorRange')[1], this.get('colorRange')[0]];
+    return this.get('colorScaleType')().range(scaleRange);
+  }).property('colorRange', 'colorScaleType'),
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).volatile(),
@@ -3669,22 +3683,26 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return this.get('legendItems.length') > 1;
   }).property('legendItems.length'),
   legendItems: Ember.computed(function() {
-    var bound,
+    var bound, maxValue, minValue, numColorSeries, seriesColor,
       _this = this;
-    bound = function(i, max, min) {
-      return ((max - min) / 5) * i + min;
+    numColorSeries = this.get('numColorSeries');
+    seriesColor = this.get('getSeriesColor');
+    maxValue = this.get('maxValue');
+    minValue = this.get('minValue');
+    bound = function(i) {
+      return ((maxValue - minValue) / numColorSeries) * i + minValue;
     };
     return [1, 2, 3, 4, 5].map(function(d, i) {
       return {
-        label: bound(i, _this.get('maxValue'), _this.get('minValue')) + ' - ' + bound(i + 1, _this.get('maxValue'), _this.get('minValue')),
+        label: bound(i) + ' - ' + bound(i + 1),
         icon: function() {
           return 'square';
         },
-        fill: 'rgba(0, 0, 0, ' + d * 0.2 + ')',
+        fill: seriesColor(d - 1, d - 1),
         width: 2.5
       };
     });
-  }).property('maxValue', 'minValue', 'unit'),
+  }).property('maxValue', 'minValue', 'unit', 'numColorSeries'),
   showLegendDetails: Ember.computed(function() {
     return function() {
       return null;
@@ -3698,17 +3716,15 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   projection: Ember.computed(function() {
     return d3.geo.equirectangular().scale((this.get('width') + 1) / 2 / Math.PI).translate([this.get('width') / 2, this.get('height') / 1.8]);
   }).property('width', 'height'),
-  colorScale: Ember.computed(function() {
-    return d3.scale.quantize().domain([this.get('minValue'), this.get('maxValue')]).range([5, 4, 3, 2, 1]);
-  }).property('minValue', 'maxValue'),
   renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit'],
   drawChart: function() {
-    var colorScale, countries, data, path,
+    var countries, data, path, seriesColor, seriesNumFromValue,
       _this = this;
     this.drawLegend();
     countries = this.get('countries');
     data = this.get('finishedData');
-    colorScale = this.get('colorScale');
+    seriesColor = this.get('getSeriesColor');
+    seriesNumFromValue = this.get('seriesNumFromValue');
     countries_data.features.forEach(function(item) {
       var filtered;
       filtered = data.findBy('label', item.properties.name);
@@ -3718,20 +3734,12 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     });
     path = d3.geo.path().projection(this.get('projection'));
     return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('prop', function(d) {
-      console.log(d.id);
       return d.id;
-    }).attr('fill', function(d) {
-      var scaleUnit, unit;
-      console.log(d);
-      if (d.properties.value !== void 0) {
-        unit = _this.get('unit');
-        scaleUnit = Math.ceil((d.properties.value - _this.get('minValue')) / unit);
-        if (scaleUnit === 0) {
-          scaleUnit = 1;
-        }
-        return 'rgba(0, 0, 0, ' + scaleUnit * 0.2 + ')';
+    }).attr('fill', function(d, i) {
+      if (d.properties.value === void 0) {
+        return '#fff';
       } else {
-        return 'rgba(255, 255, 255, 1)';
+        return seriesColor(d, seriesNumFromValue(d.properties.value - 1));
       }
     }).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
   }

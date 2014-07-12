@@ -25,8 +25,26 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   .property('data')
 
   unit: Ember.computed ->
-    (@get('maxValue') - @get('minValue')) / 5
-  .property('maxValue', 'minValue')
+    (@get('maxValue') - @get('minValue')) / @get('numColorSeries')
+  .property('maxValue', 'minValue', 'numColorSeries')
+
+  seriesNumFromValue: Ember.computed ->
+    minValue = @get 'minValue'
+    unit = @get 'unit'
+
+    (value) ->
+      Math.floor((value - minValue) / unit)
+  .property('minValue', 'unit')
+
+  numColorSeries: 5
+
+  # This is basically the default implementation, only reversed
+  # so it makes more sense when assuming that lower values have
+  # lighter series color.
+  colorScale: Ember.computed ->
+    scaleRange = [@get('colorRange')[1], @get('colorRange')[0]]
+    @get('colorScaleType')().range(scaleRange)
+  .property 'colorRange', 'colorScaleType'
 
   # ----------------------------------------------------------------------------
   # Selections
@@ -46,17 +64,21 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   .property 'legendItems.length'
 
   legendItems: Ember.computed ->
+    numColorSeries = @get 'numColorSeries'
+    seriesColor = @get 'getSeriesColor'
+    maxValue = @get 'maxValue'
+    minValue = @get 'minValue'
 
-    bound = (i, max, min) ->
-      ((max - min) / 5) * i + min
+    bound = (i) ->
+      ((maxValue - minValue) / numColorSeries) * i + minValue
 
-    [1, 2, 3, 4, 5].map (d, i) =>
-      label: bound(i, @get('maxValue'), @get('minValue')) + ' - ' + bound(i + 1, @get('maxValue'), @get('minValue'))
+    [1..5].map (d, i) =>
+      label: bound(i) + ' - ' + bound(i + 1)
       icon: -> 'square'
-      fill: 'rgba(0, 0, 0, ' + d * 0.2 +')'
+      fill: seriesColor(d - 1, d - 1)
       width: 2.5
 
-  .property('maxValue', 'minValue', 'unit')
+  .property('maxValue', 'minValue', 'unit', 'numColorSeries')
 
 
   # ----------------------------------------------------------------------------
@@ -83,24 +105,17 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       .translate([@get('width') / 2, @get('height') / 1.8])
   .property('width', 'height')
 
-  colorScale: Ember.computed ->
-    d3.scale.quantize()
-      .domain([@get('minValue'), @get('maxValue')])
-      .range([5, 4, 3, 2, 1])
-  .property('minValue', 'maxValue')
-
   renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit']
 
   drawChart: ->
-
     @drawLegend()
 
     countries = @get 'countries'
     data = @get 'finishedData'
-    colorScale = @get 'colorScale'
+    seriesColor = @get 'getSeriesColor'
+    seriesNumFromValue = @get 'seriesNumFromValue'
 
     countries_data.features.forEach (item) =>
-
       filtered = data.findBy('label', item.properties.name)
       if (filtered != undefined)
         item.properties.value = filtered.value
@@ -114,18 +129,13 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       .append('svg:path')
       .attr('d', path)
       .attr('prop', (d) =>
-        console.log d.id
         d.id
       )
-      .attr('fill', (d) =>
-        console.log(d);
-        if d.properties.value != undefined
-          unit = @get 'unit'
-          scaleUnit = Math.ceil((d.properties.value - @get('minValue')) / unit)
-          scaleUnit = 1 if scaleUnit == 0
-          'rgba(0, 0, 0, ' + scaleUnit * 0.2 + ')'
+      .attr('fill', (d, i) =>
+        if d.properties.value == undefined
+          '#fff'
         else
-          'rgba(255, 255, 255, 1)'
+          seriesColor(d, seriesNumFromValue(d.properties.value - 1))
       )
       .attr('stroke', 'rgba(0, 0, 0, 0.2)')
       .attr('stroke-width', 1)
