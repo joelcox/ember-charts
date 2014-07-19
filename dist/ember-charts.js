@@ -3690,7 +3690,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     maxValue = this.get('maxValue');
     minValue = this.get('minValue');
     bound = function(i) {
-      return (((maxValue - minValue) / numColorSeries) * i + minValue).toPrecision(6);
+      return (((maxValue - minValue) / numColorSeries) * i + minValue).toPrecision(4);
     };
     return [1, 2, 3, 4, 5].map(function(d, i) {
       return {

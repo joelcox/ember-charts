@@ -70,7 +70,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
     minValue = @get 'minValue'
 
     bound = (i) ->
-      (((maxValue - minValue) / numColorSeries) * i + minValue).toPrecision(6)
+      (((maxValue - minValue) / numColorSeries) * i + minValue).toPrecision(4)
 
     [1..5].map (d, i) =>
       label: bound(i) + ' - ' + bound(i + 1)
