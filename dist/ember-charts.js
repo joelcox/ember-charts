@@ -1299,11 +1299,9 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.PieL
     return _.sortBy(data, this.get('sortFunction'));
   }).property('filteredData', 'sortFunc'),
   sortedDataWithOther: Ember.computed(function() {
-    var data, lowPercentIndex, maxNumberOfSlices, minNumberOfSlices, minSlicePercent, otherItems, otherSlice, overflowSlices, slicesLeft,
-      _this = this;
-    data = _.cloneDeep(this.get('sortedData')).reverse();
+    var data, maxNumberOfSlices, minSlicePercent, otherItems, otherSlice, sortedData;
+    sortedData = _.cloneDeep(this.get('sortedData')).reverse();
     maxNumberOfSlices = this.get('maxNumberOfSlices');
-    minNumberOfSlices = this.get('minNumberOfSlices');
     minSlicePercent = this.get('minSlicePercent');
     otherItems = [];
     otherSlice = {
@@ -1311,38 +1309,16 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.PieL
       percent: 0,
       _otherItems: otherItems
     };
-    lowPercentIndex = _.indexOf(data, _.find(data, function(d) {
-      return d.percent < minSlicePercent;
-    }));
-    if (lowPercentIndex < 0) {
-      lowPercentIndex = data.length;
-    } else {
-      _.rest(data, lowPercentIndex).forEach(function(d) {
-        otherItems.push(d);
-        return otherSlice.percent += d.percent;
-      });
-      if (otherSlice.percent < minSlicePercent) {
-        lowPercentIndex -= 1;
-        otherItems.push(data[lowPercentIndex]);
-        otherSlice.percent += data[lowPercentIndex].percent;
-      }
+    if (sortedData.length <= maxNumberOfSlices) {
+      return sortedData;
     }
-    if (otherSlice.percent > 0) {
-      maxNumberOfSlices -= 1;
-    }
-    slicesLeft = _.first(data, lowPercentIndex);
-    overflowSlices = _.rest(slicesLeft, maxNumberOfSlices);
-    if (overflowSlices.length > 0) {
-      overflowSlices.forEach(function(d) {
-        otherItems.push(d);
-        return otherSlice.percent += d.percent;
-      });
-      slicesLeft = _.first(slicesLeft, maxNumberOfSlices);
-    }
-    if (otherSlice.percent > 0) {
-      slicesLeft.push(otherSlice);
-    }
-    return slicesLeft.reverse();
+    data = sortedData.slice(0, maxNumberOfSlices - 1);
+    otherSlice._otherItems = sortedData.slice(maxNumberOfSlices);
+    otherSlice.percent = _.reduce(otherSlice._otherItems, function(memo, item) {
+      return memo + item.percent;
+    }, 0);
+    data.push(otherSlice);
+    return data;
   }).property('sortedData', 'maxNumberOfSlices', 'minSlicePercent'),
   otherData: Ember.computed(function() {
     var otherItems, otherSlice, _ref;

@@ -74,47 +74,28 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(
   # This takes the sorted slices that have percents calculated and returns
   # sorted slices that obey the "other" slice aggregation rules
   sortedDataWithOther: Ember.computed ->
-    data = _.cloneDeep(@get 'sortedData').reverse()
+    sortedData = _.cloneDeep(@get 'sortedData').reverse()
     maxNumberOfSlices = @get 'maxNumberOfSlices'
-    minNumberOfSlices = @get 'minNumberOfSlices'
     minSlicePercent = @get 'minSlicePercent'
     otherItems = []
     otherSlice = label: 'Other', percent: 0, _otherItems: otherItems
 
-    # First make an other slice out of any slices below percent threshold
-    # Find the first slice below
-    lowPercentIndex = _.indexOf data, _.find(data, (d) =>
-      d.percent < minSlicePercent
-    )
-    # Guard against not finding any slices below the threshold
-    if lowPercentIndex < 0
-      lowPercentIndex = data.length
-    else
-      # Add low percent slices to other slice
-      _.rest(data, lowPercentIndex).forEach (d) ->
-        otherItems.push(d)
-        otherSlice.percent += d.percent
-      # Ensure Other slice is larger than minSlicePercent
-      if otherSlice.percent < minSlicePercent
-        lowPercentIndex -= 1
-        otherItems.push data[lowPercentIndex]
-        otherSlice.percent += data[lowPercentIndex].percent
+    # If there are less than the max number of slices return early
+    if sortedData.length <= maxNumberOfSlices
+      return sortedData
 
-    # Reduce max number of slices that we can have if we now have an other slice
-    maxNumberOfSlices -= 1 if otherSlice.percent > 0
+    # Split the slices in the n - 1 we can display, the others are added
+    # to the other slices
+    data = sortedData.slice(0, maxNumberOfSlices - 1)
+    otherSlice._otherItems = sortedData.slice(maxNumberOfSlices)
 
-    # Next, continue putting slices in other slice if there are too many
-    slicesLeft = _.first(data, lowPercentIndex)
-    overflowSlices = _.rest(slicesLeft, maxNumberOfSlices)
-    if overflowSlices.length > 0
-      overflowSlices.forEach (d) ->
-        otherItems.push(d)
-        otherSlice.percent += d.percent
-      slicesLeft = _.first slicesLeft, maxNumberOfSlices
+    # Sum the percentages in the other slice
+    otherSlice.percent = _.reduce otherSlice._otherItems, (memo, item) ->
+      return memo + item.percent
+    , 0
 
-    slicesLeft.push(otherSlice) if otherSlice.percent > 0
-    return slicesLeft.reverse()
-
+    data.push otherSlice
+    return data
   .property 'sortedData', 'maxNumberOfSlices', 'minSlicePercent'
 
   otherData: Ember.computed ->
