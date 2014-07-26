@@ -14,5 +14,6 @@ App.EmberChartsMapController = App.SlideController.extend
 
   rawDataHash: Ember.computed ->
     map: App.data.map
+    map2: App.data.map2
     empty: App.data.empty
   selectedData: 'map'

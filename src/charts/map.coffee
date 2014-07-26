@@ -51,7 +51,9 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   countries: Ember.computed ->
-    @get('viewport').append('svg:g').attr('id', 'countries');
+    @get('viewport').append('svg:g').attr('id', 'countries').selectAll('path').data(countries_data.features, (d) =>
+      d.properties.name
+    )
   .property 'viewport'
 
 
@@ -123,22 +125,26 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
     # Create a new path of the real projection with correct scale
     path = d3.geo.path().projection(@get 'projection')
 
-    countries.selectAll('path')
-      .data(countries_data.features)
-      .enter()
+    # Add a white fill if no value is provided
+    fill = (d, i) =>
+      if d.properties.value == undefined
+        '#fff'
+      else
+        seriesColor(d, seriesNumFromValue(d.properties.value - 1))
+
+    # Update everything in the selection
+    countries.attr('fill', fill)
+
+    # Create new countries
+    countries.enter()
       .append('svg:path')
       .attr('d', path)
-      .attr('prop', (d) =>
-        d.id
-      )
-      .attr('fill', (d, i) =>
-        if d.properties.value == undefined
-          '#fff'
-        else
-          seriesColor(d, seriesNumFromValue(d.properties.value - 1))
-      )
+      .attr('fill', fill)
       .attr('stroke', 'rgba(0, 0, 0, 0.2)')
       .attr('stroke-width', 1)
+
+    # Remove countries no longer in the map
+    countries.exit().remove()
 
 )
 

@@ -3653,7 +3653,10 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return this.get('colorScaleType')().range(scaleRange);
   }).property('colorRange', 'colorScaleType'),
   countries: Ember.computed(function() {
-    return this.get('viewport').append('svg:g').attr('id', 'countries');
+    var _this = this;
+    return this.get('viewport').append('svg:g').attr('id', 'countries').selectAll('path').data(countries_data.features, function(d) {
+      return d.properties.name;
+    });
   }).property('viewport'),
   hasLegend: Ember.computed(function() {
     return this.get('legendItems.length') > 1;
@@ -3694,7 +3697,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   }).property('width', 'height'),
   renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit'],
   drawChart: function() {
-    var countries, data, path, seriesColor, seriesNumFromValue,
+    var countries, data, fill, path, seriesColor, seriesNumFromValue,
       _this = this;
     this.drawLegend();
     countries = this.get('countries');
@@ -3709,15 +3712,16 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
       }
     });
     path = d3.geo.path().projection(this.get('projection'));
-    return countries.selectAll('path').data(countries_data.features).enter().append('svg:path').attr('d', path).attr('prop', function(d) {
-      return d.id;
-    }).attr('fill', function(d, i) {
+    fill = function(d, i) {
       if (d.properties.value === void 0) {
         return '#fff';
       } else {
         return seriesColor(d, seriesNumFromValue(d.properties.value - 1));
       }
-    }).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
+    };
+    countries.attr('fill', fill);
+    countries.enter().append('svg:path').attr('d', path).attr('fill', fill).attr('stroke', 'rgba(0, 0, 0, 0.2)').attr('stroke-width', 1);
+    return countries.exit().remove();
   }
 });
 
