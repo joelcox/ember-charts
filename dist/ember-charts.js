@@ -3654,7 +3654,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   }).property('colorRange', 'colorScaleType'),
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
-  }).volatile(),
+  }).property('viewport'),
   hasLegend: Ember.computed(function() {
     return this.get('legendItems.length') > 1;
   }).property('legendItems.length'),

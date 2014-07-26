@@ -52,7 +52,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
 
   countries: Ember.computed ->
     @get('viewport').append('svg:g').attr('id', 'countries');
-  .volatile()
+  .property 'viewport'
 
 
   # ----------------------------------------------------------------------------
