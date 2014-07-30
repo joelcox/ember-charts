@@ -30,11 +30,18 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
 
   seriesNumFromValue: Ember.computed ->
     minValue = @get 'minValue'
+    maxValue = @get 'maxValue'
+    numColorSeries = @get 'numColorSeries'
     unit = @get 'unit'
 
     (value) ->
+      if value == minValue
+        return 0
+      if value == maxValue
+        return numColorSeries - 1
       Math.floor((value - minValue) / unit)
-  .property('minValue', 'unit')
+
+  .property('minValue', 'maxValue', 'numColorSeries', 'unit')
 
   numColorSeries: 5
 
@@ -130,7 +137,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       if d.properties.value == undefined
         '#fff'
       else
-        seriesColor(d, seriesNumFromValue(d.properties.value - 1))
+        seriesColor(d, seriesNumFromValue(d.properties.value))
 
     # Update everything in the selection
     countries.attr('fill', fill)

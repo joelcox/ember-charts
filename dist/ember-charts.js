@@ -3639,13 +3639,21 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return (this.get('maxValue') - this.get('minValue')) / this.get('numColorSeries');
   }).property('maxValue', 'minValue', 'numColorSeries'),
   seriesNumFromValue: Ember.computed(function() {
-    var minValue, unit;
+    var maxValue, minValue, numColorSeries, unit;
     minValue = this.get('minValue');
+    maxValue = this.get('maxValue');
+    numColorSeries = this.get('numColorSeries');
     unit = this.get('unit');
     return function(value) {
+      if (value === minValue) {
+        return 0;
+      }
+      if (value === maxValue) {
+        return numColorSeries - 1;
+      }
       return Math.floor((value - minValue) / unit);
     };
-  }).property('minValue', 'unit'),
+  }).property('minValue', 'maxValue', 'numColorSeries', 'unit'),
   numColorSeries: 5,
   colorScale: Ember.computed(function() {
     var scaleRange;
@@ -3716,7 +3724,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
       if (d.properties.value === void 0) {
         return '#fff';
       } else {
-        return seriesColor(d, seriesNumFromValue(d.properties.value - 1));
+        return seriesColor(d, seriesNumFromValue(d.properties.value));
       }
     };
     countries.attr('fill', fill);

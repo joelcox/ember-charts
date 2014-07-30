@@ -32,3 +32,19 @@ App.data.map2 = [
     value: 166
 ]
 
+App.data.map3 = [
+    label: 'Germany',
+    value: 0.2
+  ,
+    label: 'Belgium',
+    value: 0.55
+  ,
+    label: 'France',
+    value: 0.1,
+  ,
+    label: 'Spain',
+    value: 0.8
+  ,
+    label: 'Portugal',
+    value: 0.34
+]
