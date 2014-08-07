@@ -58,9 +58,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   countries: Ember.computed ->
-    @get('viewport').append('svg:g').attr('id', 'countries').selectAll('path').data(countries_data.features, (d) =>
-      d.properties.name
-    )
+    @get('viewport').append('svg:g').attr('id', 'countries')
   .property 'viewport'
 
 
@@ -117,9 +115,13 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
   renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit']
 
   drawChart: ->
+    filled = 0
     @drawLegend()
 
-    countries = @get 'countries'
+    countries = @get('countries').selectAll('path').data(countries_data.features, (d) =>
+      d.properties.name
+    )
+
     data = @get 'finishedData'
     seriesColor = @get 'getSeriesColor'
     seriesNumFromValue = @get 'seriesNumFromValue'
@@ -134,6 +136,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
 
     # Add a white fill if no value is provided
     fill = (d, i) =>
+      filled+1;
       if d.properties.value == undefined
         '#fff'
       else

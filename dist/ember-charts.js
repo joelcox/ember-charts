@@ -3661,10 +3661,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     return this.get('colorScaleType')().range(scaleRange);
   }).property('colorRange', 'colorScaleType'),
   countries: Ember.computed(function() {
-    var _this = this;
-    return this.get('viewport').append('svg:g').attr('id', 'countries').selectAll('path').data(countries_data.features, function(d) {
-      return d.properties.name;
-    });
+    return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).property('viewport'),
   hasLegend: Ember.computed(function() {
     return this.get('legendItems.length') > 1;
@@ -3705,10 +3702,13 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   }).property('width', 'height'),
   renderVars: ['countries', 'projection', 'projectionScale', 'finishedData', 'unit'],
   drawChart: function() {
-    var countries, data, fill, path, seriesColor, seriesNumFromValue,
+    var countries, data, fill, filled, path, seriesColor, seriesNumFromValue,
       _this = this;
+    filled = 0;
     this.drawLegend();
-    countries = this.get('countries');
+    countries = this.get('countries').selectAll('path').data(countries_data.features, function(d) {
+      return d.properties.name;
+    });
     data = this.get('finishedData');
     seriesColor = this.get('getSeriesColor');
     seriesNumFromValue = this.get('seriesNumFromValue');
@@ -3721,6 +3721,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
     });
     path = d3.geo.path().projection(this.get('projection'));
     fill = function(d, i) {
+      filled + 1;
       if (d.properties.value === void 0) {
         return '#fff';
       } else {
