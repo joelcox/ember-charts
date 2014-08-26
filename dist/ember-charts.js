@@ -3717,6 +3717,8 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
       filtered = data.findBy('label', item.properties.name);
       if (filtered !== void 0) {
         return item.properties.value = filtered.value;
+      } else {
+        return item.properties.value = void 0;
       }
     });
     path = d3.geo.path().projection(this.get('projection'));

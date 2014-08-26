@@ -126,10 +126,14 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
     seriesColor = @get 'getSeriesColor'
     seriesNumFromValue = @get 'seriesNumFromValue'
 
+    # Find the current value in the chart data and set it to undefined
+    # if it is not found, just to be sure.
     countries_data.features.forEach (item) =>
       filtered = data.findBy('label', item.properties.name)
       if (filtered != undefined)
         item.properties.value = filtered.value
+      else
+        item.properties.value = undefined
 
     # Create a new path of the real projection with correct scale
     path = d3.geo.path().projection(@get 'projection')
