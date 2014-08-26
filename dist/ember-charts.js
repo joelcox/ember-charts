@@ -1371,9 +1371,7 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.PieL
   legendItems: Ember.computed(function() {
     return this.get('otherData').concat(this.get('rejectedData'));
   }).property('otherData', 'rejectedData'),
-  hasLegend: Ember.computed(function() {
-    return this.get('legendItems.length') > 0;
-  }).property('legendItems.length'),
+  hasLegend: true,
   showDetails: Ember.computed(function() {
     var _this = this;
     return function(d, i, element) {
@@ -1755,9 +1753,7 @@ Ember.Charts.VerticalBarComponent = Ember.Charts.ChartComponent.extend(Ember.Cha
     return d3.scale.ordinal().domain(this.get('xBetweenGroupDomain')).rangeRoundBands([0, this.get('graphicWidth')], betweenGroupPadding / 2, betweenGroupPadding / 2);
   }).property('isGrouped', 'stackBars', 'graphicWidth', 'labelWidth', 'xBetweenGroupDomain', 'betweenGroupPadding'),
   numColorSeries: Ember.computed.alias('individualBarLabels.length'),
-  hasLegend: Ember.computed(function() {
-    return this.get('stackBars') || this.get('isGrouped') && this.get('legendItems.length') > 1;
-  }).property('stackBars', 'isGrouped', 'legendItems.length'),
+  hasLegend: true,
   legendItems: Ember.computed(function() {
     var getSeriesColor;
     getSeriesColor = this.get('getSeriesColor');
@@ -2201,7 +2197,7 @@ Ember.Charts.ScatterComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.
       return _this.get('colorScale')(colorIndex / _this.get('numGroupColors'));
     };
   }),
-  hasLegend: Ember.computed.alias('isGrouped'),
+  hasLegend: true,
   legendIconRadius: Ember.computed.alias('dotRadius'),
   legendItems: Ember.computed(function() {
     var displayGroups, getGroupColor, getGroupShape, legendData, point;
@@ -2960,9 +2956,7 @@ Ember.Charts.TimeSeriesComponent = Ember.Charts.ChartComponent.extend(Ember.Char
       return 0.85;
     }
   }).property('numLines'),
-  hasLegend: Ember.computed(function() {
-    return this.get('legendItems.length') > 1;
-  }).property('legendItems.length'),
+  hasLegend: true,
   legendItems: Ember.computed(function() {
     var getSeriesColor, lineAttrs,
       _this = this;
@@ -3466,9 +3460,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       return 0.85;
     }
   }).property('numLines'),
-  hasLegend: Ember.computed(function() {
-    return this.get('legendItems.length') > 1;
-  }).property('legendItems.length'),
+  hasLegend: true,
   legendItems: Ember.computed(function() {
     var getSeriesColor, lineAttrs,
       _this = this;
@@ -3663,9 +3655,7 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
   countries: Ember.computed(function() {
     return this.get('viewport').append('svg:g').attr('id', 'countries');
   }).property('viewport'),
-  hasLegend: Ember.computed(function() {
-    return this.get('legendItems.length') > 1;
-  }).property('legendItems.length'),
+  hasLegend: true,
   legendItems: Ember.computed(function() {
     var bound, maxValue, minValue, numColorSeries, seriesColor,
       _this = this;

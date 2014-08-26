@@ -71,7 +71,7 @@ Ember.Charts.ScatterComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
   # Layout
   # ----------------------------------------------------------------------------
-  # TODO(tony): Consider making logic for whether we are showing the title or 
+  # TODO(tony): Consider making logic for whether we are showing the title or
   # not and then axis mixin will calculate axis offset that will be added
   axisTitleHeightOffset: Ember.computed ->
     @get('axisTitleHeight') + @get('labelPadding')
@@ -201,7 +201,7 @@ Ember.Charts.ScatterComponent = Ember.Charts.ChartComponent.extend(
   # Legend Configuration
   # ----------------------------------------------------------------------------
 
-  hasLegend: Ember.computed.alias 'isGrouped'
+  hasLegend: true,
 
   legendIconRadius: Ember.computed.alias 'dotRadius'
 

@@ -510,9 +510,7 @@ Ember.Charts.TimeSeriesComponent = Ember.Charts.ChartComponent.extend(
   # Legend Configuration
   # ----------------------------------------------------------------------------
 
-  hasLegend: Ember.computed ->
-    @get('legendItems.length') > 1
-  .property 'legendItems.length'
+  hasLegend: true,
 
   legendItems: Ember.computed ->
     getSeriesColor = @get 'getSeriesColor'

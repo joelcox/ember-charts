@@ -181,10 +181,8 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(
     @get('otherData').concat(@get 'rejectedData')
   .property 'otherData', 'rejectedData'
 
-  hasLegend: Ember.computed ->
-    @get('legendItems.length') > 0
-  .property 'legendItems.length'
-
+  hasLegend: true,
+  
   # ----------------------------------------------------------------------------
   # Tooltip Configuration
   # ----------------------------------------------------------------------------
