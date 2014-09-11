@@ -3610,7 +3610,7 @@ Ember.Handlebars.helper('area-chart', Ember.Charts.AreaComponent);
 (function() {
 
 
-Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, {
+Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin, {
   classNames: ['chart-map'],
   values: Ember.computed(function() {
     var _this = this;
@@ -3677,16 +3677,6 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Lege
       };
     });
   }).property('maxValue', 'minValue', 'unit', 'numColorSeries'),
-  showLegendDetails: Ember.computed(function() {
-    return function() {
-      return null;
-    };
-  }),
-  hideLegendDetails: Ember.computed(function() {
-    return function() {
-      return null;
-    };
-  }),
   projection: Ember.computed(function() {
     return d3.geo.equirectangular().scale((this.get('width') + 1) / 2 / Math.PI).translate([this.get('width') / 2, this.get('height') / 1.8]);
   }).property('width', 'height'),

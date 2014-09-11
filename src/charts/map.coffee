@@ -1,6 +1,6 @@
 
 Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
-  Ember.Charts.Legend
+  Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin
   classNames: ['chart-map']
 
   # ----------------------------------------------------------------------------
@@ -84,19 +84,6 @@ Ember.Charts.MapComponent = Ember.Charts.ChartComponent.extend(
       width: 2.5
 
   .property('maxValue', 'minValue', 'unit', 'numColorSeries')
-
-
-  # ----------------------------------------------------------------------------
-  # Tooltip overwrites
-  # ----------------------------------------------------------------------------
-
-  showLegendDetails: Ember.computed ->
-    return ->
-      null
-
-  hideLegendDetails: Ember.computed ->
-    return ->
-      null
 
   # ----------------------------------------------------------------------------
   # D3 properties
