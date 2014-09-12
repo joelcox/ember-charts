@@ -11,7 +11,6 @@ Ember.Charts.TimeSeriesComponent = Ember.Charts.ChartComponent.extend(
   # Getters for formatting human-readable labels from provided data
   formatTime: d3.time.format('%Y-%m-%d')
   formatTimeLong: d3.time.format('%a %b %-d, %Y')
-  formatValue: d3.format('.2s')
   formatValueLong: d3.format(',.r')
 
   # Data without group will be merged into a group with this name

@@ -7,7 +7,6 @@ Ember.Charts.HorizontalBarComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
-  formatValue: d3.format('.2s')
   formatValueLong: d3.format(',.r')
 
   # Sort key for the data

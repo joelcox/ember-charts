@@ -21,11 +21,10 @@ Ember.Charts.BubbleComponent = Ember.Charts.ChartComponent.extend(
   # repel.
   # Dividing by 8 scales down the charge to be
   # appropriate for the visualization dimensions.
-  charge: Ember.computed -> 
+  charge: Ember.computed ->
     (d) -> -Math.pow(d.radius, 2.0) / 8
 
   # Getters for formatting human-readable labels from provided data
-  formatValue: d3.format('.2s')
   formatValueLong: d3.format(',.r')
 
   # ----------------------------------------------------------------------------

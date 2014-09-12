@@ -3,6 +3,13 @@ Ember.Charts.ChartComponent = Ember.Component.extend(
   templateName: 'chart'
   classNames: ['chart-frame', 'scroll-y']
 
+  formatValue: Ember.computed ->
+    (val) ->
+      if val >= 1
+        return d3.format('.3s')(val)
+      else
+        return d3.format('.3g')(val)
+
   # ----------------------------------------------------------------------------
   # Layout
   # ----------------------------------------------------------------------------

@@ -6,7 +6,6 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
-  formatValue: d3.format('.2s')
   formatValueLong: d3.format(',.r')
 
   # The smallest slices will be combined into an "Other" slice until no slice is
@@ -182,7 +181,7 @@ Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(
   .property 'otherData', 'rejectedData'
 
   hasLegend: true,
-  
+
   # ----------------------------------------------------------------------------
   # Tooltip Configuration
   # ----------------------------------------------------------------------------

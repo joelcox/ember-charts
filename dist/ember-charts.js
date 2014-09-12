@@ -869,6 +869,15 @@ Ember.Charts.PieLegend = Ember.Mixin.create({
 Ember.Charts.ChartComponent = Ember.Component.extend(Ember.Charts.Colorable, Ember.AddeparMixins.ResizeHandlerMixin, {
   templateName: 'chart',
   classNames: ['chart-frame', 'scroll-y'],
+  formatValue: Ember.computed(function() {
+    return function(val) {
+      if (val >= 1) {
+        return d3.format('.3s')(val);
+      } else {
+        return d3.format('.3g')(val);
+      }
+    };
+  }),
   horizontalMargin: 30,
   verticalMargin: 30,
   marginRight: Ember.computed.alias('horizontalMargin'),
@@ -967,7 +976,6 @@ Ember.Charts.ChartComponent = Ember.Component.extend(Ember.Charts.Colorable, Emb
 
 Ember.Charts.HorizontalBarComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.FloatingTooltipMixin, {
   classNames: ['chart-horizontal-bar'],
-  formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
   selectedSortType: 'value',
   defaultOuterHeight: 500,
@@ -1235,7 +1243,6 @@ Ember.Handlebars.helper('horizontal-bar-chart', Ember.Charts.HorizontalBarCompon
 
 Ember.Charts.PieComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.PieLegend, Ember.Charts.FloatingTooltipMixin, {
   classNames: ['chart-pie'],
-  formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
   minSlicePercent: 5,
   maxNumberOfSlices: 8,
@@ -1551,7 +1558,6 @@ Ember.Handlebars.helper('pie-chart', Ember.Charts.PieComponent);
 
 Ember.Charts.VerticalBarComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin, Ember.Charts.AxesMixin, {
   classNames: ['chart-vertical-bar'],
-  formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
   ungroupedSeriesName: 'Other',
   stackBars: false,
@@ -2434,7 +2440,6 @@ Ember.Charts.TimeSeriesComponent = Ember.Charts.ChartComponent.extend(Ember.Char
   classNames: ['chart-time-series'],
   formatTime: d3.time.format('%Y-%m-%d'),
   formatTimeLong: d3.time.format('%a %b %-d, %Y'),
-  formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
   ungroupedSeriesName: 'Other',
   stackBars: false,
@@ -3125,7 +3130,6 @@ Ember.Charts.BubbleComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.F
       return -Math.pow(d.radius, 2.0) / 8;
     };
   }),
-  formatValue: d3.format('.2s'),
   formatValueLong: d3.format(',.r'),
   showDetails: Ember.computed(function() {
     var _this = this;
@@ -3242,7 +3246,6 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
-  formatValue: d3.format('.2s'),
   formatYear: d3.format('d'),
   interpolate: false,
   removeAllSeries: function() {

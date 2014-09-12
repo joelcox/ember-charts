@@ -7,7 +7,6 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
   # ----------------------------------------------------------------------------
 
   # Getters for formatting human-readable labels from provided data
-  formatValue: d3.format('.2s')
   formatYear: d3.format('d')
 
   # Use basis interpolation? Smooths lines but may prevent extrema from being
