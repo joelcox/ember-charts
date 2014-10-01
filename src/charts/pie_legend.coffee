@@ -93,6 +93,9 @@ Ember.Charts.PieLegend = Ember.Mixin.create
         legend.classed('hovered', no)
       )
 
+    if @get('legendItems.length') == 0
+      return
+
     # Create text elements within .labels group for each row of labels
     labels = legend.append('g')
       .attr('class', 'labels')

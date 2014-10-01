@@ -829,6 +829,9 @@ Ember.Charts.PieLegend = Ember.Mixin.create({
         return legend.classed('hovered', false);
       });
     }
+    if (this.get('legendItems.length') === 0) {
+      return;
+    }
     labels = legend.append('g').attr('class', 'labels');
     labelStrings = this.get('legendItems').map(function(d) {
       if (d.percent != null) {
