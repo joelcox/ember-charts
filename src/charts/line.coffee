@@ -1,5 +1,5 @@
 Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
-  Ember.Charts.Legend, Ember.Charts.AxesMixin,
+  Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin, Ember.Charts.AxesMixin,
   classNames: ['chart-line']
 
   # ----------------------------------------------------------------------------
@@ -245,6 +245,22 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
     return ->
       null
 
+  showDetails: Ember.computed ->
+    (data, i, element) =>
+      d3.select(element).classed('hovered', yes)
+      formatValue = @get 'formatValue'
+
+      content = "<span class=\"tip-label\">#{data.group}</span>"
+      content += "<span class=\"value\">#{formatValue(data.value)}</span><br/>"
+
+      @showTooltip(content, d3.event)
+
+  hideDetails: Ember.computed ->
+    (data, i, element) =>
+      d3.select(element).classed('hovered', no)
+      @hideTooltip()
+
+
   # ----------------------------------------------------------------------------
   # Selections
   # ----------------------------------------------------------------------------
@@ -277,6 +293,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
 
   drawChart: ->
     @updateLineData()
+    @updateLineDotsData()
     @updateAxes()
     @updateLineGraphic()
     if @get('hasLegend')
@@ -331,6 +348,17 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(
       .append('path').attr('class', 'line')
     series.exit()
       .remove()
+
+  updateLineDotsData: ->
+    showDetails = @get 'showDetails'
+    hideDetails = @get 'hideDetails'
+
+    lineSeries = @get('viewport').selectAll('.series').data(@get 'groupedLineData')
+    lineSeries.selectAll('.dots-circle').data((d, i) -> d.values).enter().append('circle')
+      .attr('r', 5).attr('cx', ((d) => @get('xTimeScale') d.group))
+      .attr('cy', ((d) => @get('yScale') d.value))
+      .on('mouseover', (d, i) -> showDetails(d, i, this))
+      .on('mouseout', (d, i) -> hideDetails(d, i, this))
 
   updateLineGraphic: ->
     series = @get 'series'

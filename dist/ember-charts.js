@@ -3247,7 +3247,7 @@ Ember.Handlebars.helper('bubble-chart', Ember.Charts.BubbleComponent);
 (function() {
 
 
-Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.AxesMixin, {
+Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Legend, Ember.Charts.FloatingTooltipMixin, Ember.Charts.AxesMixin, {
   classNames: ['chart-line'],
   formatYear: d3.format('d'),
   interpolate: false,
@@ -3495,6 +3495,24 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
       return null;
     };
   }),
+  showDetails: Ember.computed(function() {
+    var _this = this;
+    return function(data, i, element) {
+      var content, formatValue;
+      d3.select(element).classed('hovered', true);
+      formatValue = _this.get('formatValue');
+      content = "<span class=\"tip-label\">" + data.group + "</span>";
+      content += "<span class=\"value\">" + (formatValue(data.value)) + "</span><br/>";
+      return _this.showTooltip(content, d3.event);
+    };
+  }),
+  hideDetails: Ember.computed(function() {
+    var _this = this;
+    return function(data, i, element) {
+      d3.select(element).classed('hovered', false);
+      return _this.hideTooltip();
+    };
+  }),
   xAxis: Ember.computed(function() {
     var xAxis;
     xAxis = this.get('viewport').select('.x.axis');
@@ -3516,6 +3534,7 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
   renderVars: ['getLabelledTicks', 'xTimeScale', 'yScale'],
   drawChart: function() {
     this.updateLineData();
+    this.updateLineDotsData();
     this.updateAxes();
     this.updateLineGraphic();
     if (this.get('hasLegend')) {
@@ -3548,6 +3567,24 @@ Ember.Charts.LineComponent = Ember.Charts.ChartComponent.extend(Ember.Charts.Leg
     series = this.get('series');
     series.enter().append('g').attr('class', 'series').append('path').attr('class', 'line');
     return series.exit().remove();
+  },
+  updateLineDotsData: function() {
+    var hideDetails, lineSeries, showDetails,
+      _this = this;
+    showDetails = this.get('showDetails');
+    hideDetails = this.get('hideDetails');
+    lineSeries = this.get('viewport').selectAll('.series').data(this.get('groupedLineData'));
+    return lineSeries.selectAll('.dots-circle').data(function(d, i) {
+      return d.values;
+    }).enter().append('circle').attr('r', 5).attr('cx', (function(d) {
+      return _this.get('xTimeScale')(d.group);
+    })).attr('cy', (function(d) {
+      return _this.get('yScale')(d.value);
+    })).on('mouseover', function(d, i) {
+      return showDetails(d, i, this);
+    }).on('mouseout', function(d, i) {
+      return hideDetails(d, i, this);
+    });
   },
   updateLineGraphic: function() {
     var graphicTop, series;
